@@ -1,0 +1,26 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-background-dark text-primary-dark font-sans antialiased;
+  }
+}
+
+/* Custom Scrollbar for VS Code feel */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  @apply bg-background-dark;
+}
+::-webkit-scrollbar-thumb {
+  @apply bg-surface-dark border-2 border-solid border-background-dark rounded-full;
+}
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-border-dark;
+}

@@ -1,0 +1,7 @@
+codepolish/node_modules/
+codepolish/venv/
+codepolish/__pycache__/
+codepolish/backend/__pycache__/
+codepolish/backend/venv/
+.DS_Store
+*.zip
