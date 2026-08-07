@@ -83,7 +83,7 @@ function App() {
       )}
 
       {/* Main Content Area */}
-      <main className={`flex-1 flex flex-col relative z-10 w-full ${currentScreen !== 'results' ? 'items-center justify-center' : ''}`}>
+      <main className={`flex-1 min-h-0 overflow-hidden flex flex-col relative z-10 w-full ${currentScreen !== 'results' ? 'items-center justify-center' : ''}`}>
         {currentScreen === 'landing' && (
           <Landing onAnalyze={handleAnalyze} />
         )}
