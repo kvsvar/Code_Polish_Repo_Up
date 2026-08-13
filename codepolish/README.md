@@ -1,32 +1,69 @@
-# React + TypeScript + Vite
+# CodePolish
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+CodePolish is a web-based tool designed to analyze uploaded codebase repositories (via ZIP files) and provide insights about them, such as detecting the languages, frameworks, and project size (file/folder counts).
 
-Currently, two official plugins are available:
+## Features
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- **Project Upload**: Easily upload your project as a `.zip` file for analysis.
+- **Language Detection**: Automatically detects programming languages used in the project (e.g., Python, JavaScript, TypeScript).
+- **Framework Detection**: Identifies popular frameworks within your codebase:
+  - **Node.js**: React, Next.js, Express, NestJS
+  - **Python**: Django, Flask, FastAPI
+- **Project Statistics**: Quickly view the total file and folder counts, ignoring heavy directories like `node_modules` or `venv`.
 
-## React Compiler
+## Tech Stack
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+### Frontend
+- **React 19** with **TypeScript** and **Vite**
+- **Tailwind CSS** for a cohesive, dark-themed design system
+- **Framer Motion** for smooth animations and transitions
+- **Lucide React** for UI icons
+- **Recharts** for data visualization
 
-## Expanding the Oxlint configuration
+### Backend
+- **Python (FastAPI / Flask)** serving API endpoints
+- Custom Python analysis utilities to extract metadata and detect frameworks via pattern matching and configuration files (`package.json`, `requirements.txt`, etc.).
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
+## Getting Started
 
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
-```
+### Prerequisites
+- Node.js & npm (for the frontend)
+- Python 3.8+ (for the backend)
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+### Installation
+
+1. **Clone the repository** (or download the source):
+   ```bash
+   git clone <repository-url>
+   cd codepolish
+   ```
+
+2. **Frontend Setup**:
+   ```bash
+   # Install dependencies
+   npm install
+
+   # Start the development server
+   npm run dev
+   ```
+
+3. **Backend Setup**:
+   ```bash
+   cd backend
+   
+   # Create a virtual environment and activate it
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   
+   # Install backend dependencies (make sure to create requirements.txt if needed)
+   pip install -r requirements.txt
+   
+   # Start the backend server (Example for FastAPI)
+   uvicorn main:app --reload --port 8000
+   ```
+
+## Usage
+1. Open the application in your browser (usually `http://localhost:5173`).
+2. On the Landing screen, click to upload a `.zip` file containing your codebase.
+3. Wait for the analysis to complete on the Progress screen.
+4. View your project insights on the Results screen!
