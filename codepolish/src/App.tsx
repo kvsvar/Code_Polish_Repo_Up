@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Landing } from './components/Landing';
 import { Progress } from './components/Progress';
 import { Results } from './components/Results';
+import { DependencyGraphBackground } from './components/DependencyGraphBackground';
 import { Code2 } from 'lucide-react';
 
 type Screen = 'landing' | 'progress' | 'results';
@@ -50,7 +51,7 @@ function App() {
   };
 
   return (
-    <div className="h-screen flex flex-col font-sans bg-[#0B0C10] text-primary-dark selection:bg-primary-brand/30 selection:text-primary-brand relative overflow-hidden">
+    <div className="h-screen flex flex-col font-sans bg-[#05050A] text-primary-dark selection:bg-primary-brand/30 selection:text-primary-brand relative overflow-hidden">
       
       {/* Toast Error */}
       {error && (
@@ -60,20 +61,21 @@ function App() {
         </div>
       )}
 
-      {/* Background Grid & Glows */}
-      <div className="absolute inset-0 z-0 opacity-[0.03] pointer-events-none" 
-           style={{ backgroundImage: 'linear-gradient(#2DD4A7 1px, transparent 1px), linear-gradient(90deg, #2DD4A7 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
-      <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-primary-brand/20 blur-[120px] rounded-full z-0 pointer-events-none" />
-      <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-blue-500/10 blur-[120px] rounded-full z-0 pointer-events-none" />
+      {/* Animated Dependency Graph Background */}
+      <div className={`absolute inset-0 z-0 transition-opacity duration-1000 pointer-events-none ${currentScreen === 'results' ? 'opacity-15' : 'opacity-100'}`}>
+        <DependencyGraphBackground />
+      </div>
 
       {/* Global Header */}
       {currentScreen !== 'results' && (
         <header className="w-full py-6 px-8 flex items-center justify-between relative z-20">
           <div className="flex items-center gap-3 cursor-pointer" onClick={() => setCurrentScreen('landing')}>
-            <div className="w-9 h-9 rounded-full bg-[#162025] border border-[#2DD4A7]/30 flex items-center justify-center text-primary-brand">
+            <div className="w-9 h-9 rounded-full bg-[#13151A] border border-[#6D5EF0]/30 flex items-center justify-center text-primary-brand shadow-[0_0_15px_rgba(109,94,240,0.15)]">
               <Code2 size={18} />
             </div>
-            <span className="font-bold text-lg tracking-tight text-white">CodePolish</span>
+            {currentScreen !== 'landing' && (
+              <span className="font-bold text-lg tracking-tight text-white">CodePolish</span>
+            )}
           </div>
           
           <div className="px-4 py-1.5 rounded-full border border-[#2A2E37] bg-[#1A1D23]/50 text-secondary-dark text-xs font-medium font-mono backdrop-blur-md">

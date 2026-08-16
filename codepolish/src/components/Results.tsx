@@ -2,11 +2,10 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { 
   Code2, Home, Network, AlertTriangle, Archive, Clock, 
-  Download, Moon, Sun, Lock, ChevronRight, File, Folder,
-  CheckCircle2, AlertCircle
+  Download, Moon, Sun, Lock, ChevronRight, File
 } from 'lucide-react';
 import { 
-  Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer 
+  Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer 
 } from 'recharts';
 
 interface ResultsProps {
@@ -163,7 +162,7 @@ export const Results: React.FC<ResultsProps> = ({ data, onReset }) => {
               <div className="relative w-40 h-40 shrink-0">
                 <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
                   <circle cx="50" cy="50" r="45" fill="none" stroke="#2A2E37" strokeWidth="8" />
-                  <circle cx="50" cy="50" r="45" fill="none" stroke="#2DD4A7" strokeWidth="8" strokeDasharray="282.7" strokeDashoffset={282.7 - (282.7 * score) / 100} className="drop-shadow-[0_0_8px_rgba(45,212,167,0.8)]" />
+                  <circle cx="50" cy="50" r="45" fill="none" stroke="#6D5EF0" strokeWidth="8" strokeDasharray="282.7" strokeDashoffset={282.7 - (282.7 * score) / 100} className="drop-shadow-[0_0_8px_rgba(109,94,240,0.8)]" />
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
                   <span className="text-5xl font-black text-white">{score}</span>
@@ -208,8 +207,8 @@ export const Results: React.FC<ResultsProps> = ({ data, onReset }) => {
             className="grid grid-cols-2 md:grid-cols-5 gap-4"
           >
             {/* Structure */}
-            <div className="bg-[#13151A] border-2 border-primary-brand/30 rounded-xl p-4 shadow-[0_0_15px_rgba(45,212,167,0.1)] relative overflow-hidden">
-              <div className="flex items-center gap-2 mb-4 text-primary-brand">
+            <div className="bg-[#13151A] border-2 border-primary-brand/30 rounded-xl p-4 shadow-[0_0_15px_rgba(109,94,240,0.15)] relative overflow-hidden">
+              <div className="flex items-center gap-2 mb-4 text-primary-brand font-medium">
                 <Network size={16} /> <span className="font-semibold text-sm text-white">Structure</span>
               </div>
               <div className="text-2xl font-bold text-white flex items-baseline gap-1 mb-3">
@@ -357,8 +356,8 @@ export const Results: React.FC<ResultsProps> = ({ data, onReset }) => {
               ].map((step, i) => (
                 <div key={i} className="flex flex-col items-center">
                   <div className={`w-5 h-5 rounded-full flex items-center justify-center mb-3 text-[10px] font-bold ${
-                    step.status === 'done' ? 'bg-primary-brand text-[#0B0C10]' : 
-                    step.status === 'current' ? 'bg-[#0B0C10] border-2 border-primary-brand text-primary-brand' :
+                    step.status === 'done' ? 'bg-primary-brand text-white' : 
+                    step.status === 'current' ? 'bg-[#05050A] border-2 border-primary-brand text-primary-brand' :
                     'bg-[#1A1D23] border-2 border-[#2A2E37] text-secondary-dark'
                   }`}>
                     {step.status === 'done' ? '✓' : i + 1}

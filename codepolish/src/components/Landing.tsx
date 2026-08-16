@@ -17,34 +17,27 @@ export const Landing: React.FC<LandingProps> = ({ onAnalyze }) => {
     <div className="w-full max-w-7xl mx-auto px-4 lg:px-8 py-12 flex flex-col lg:flex-row items-center gap-16 relative z-10">
       
       {/* Left Column: Copy & Mockup */}
-      <motion.div 
-        initial={{ opacity: 0, x: -40 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.8, ease: "easeOut" }}
-        className="flex-1 w-full"
-      >
-        <div className="inline-flex items-center gap-2 bg-[#1A1D23]/80 border border-[#2A2E37] px-3 py-1.5 rounded-full text-xs font-medium text-secondary-dark mb-8">
-          <div className="w-2 h-2 rounded-full bg-primary-brand shadow-[0_0_8px_rgba(45,212,167,0.8)]" />
-          Static analysis · no code leaves your machine
+      <div className="flex-1 w-full flex flex-col items-start">
+        {/* Unified Glass Text Panel */}
+        <div className="hover-glass rounded-2xl p-8 md:p-10 mb-8 w-full max-w-[680px]">
+          <h1 className="text-5xl lg:text-6xl font-bold mb-6 tracking-tight text-white font-display leading-tight">
+            CodePolish
+          </h1>
+
+          <p className="text-base lg:text-lg text-secondary-dark max-w-[480px] leading-[1.6]">
+            Code doesn't fail in isolation — it fails in connections. CodePolish maps every file, every call, every dependency, and tells you exactly where the structure gives way.
+          </p>
         </div>
-
-        <h1 className="text-5xl lg:text-7xl font-bold mb-6 tracking-tight text-primary-dark">
-          Grammarly for <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-brand to-blue-500">code.</span>
-        </h1>
-
-        <p className="text-lg lg:text-xl text-secondary-dark mb-12 max-w-lg leading-relaxed">
-          Drop a vibe-coded repository into the scanner. CodePolish parses every file and shows, calmly and concretely, what stands between it and production.
-        </p>
 
         {/* Mock Code Window */}
         <motion.div 
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.2, ease: "easeOut" }}
-          className="bg-[#0D0F12] border border-[#2A2E37] rounded-xl overflow-hidden shadow-2xl relative"
+          className="hover-glass rounded-2xl w-full max-w-[680px] mb-8 relative animate-none group/code"
         >
           {/* Mac window dots */}
-          <div className="flex items-center gap-2 px-4 py-3 bg-[#13151A] border-b border-[#2A2E37]">
+          <div className="flex items-center gap-2 px-4 py-3 border-b border-transparent group-hover/code:border-white/5 transition-colors duration-300">
             <div className="flex gap-1.5">
               <div className="w-3 h-3 rounded-full bg-[#FF5F56]" />
               <div className="w-3 h-3 rounded-full bg-[#FFBD2E]" />
@@ -53,28 +46,32 @@ export const Landing: React.FC<LandingProps> = ({ onAnalyze }) => {
             <span className="ml-4 text-xs font-mono text-secondary-dark">app.py</span>
           </div>
 
-          <div className="p-5 font-mono text-sm overflow-x-auto relative">
+          <div className="p-5 font-mono text-sm relative">
             <div className="flex">
-              <div className="text-secondary-dark/50 select-none text-right pr-4 border-r border-[#2A2E37]/50 mr-4 space-y-1.5">
-                <div>1</div><div>2</div><div>3</div><div>4</div>
+              <div className="text-secondary-dark/50 select-none text-right pr-4 border-r border-[#2A2E37]/50 mr-4 space-y-1.5 shrink-0">
+                <div className="py-[1px]">1</div><div className="py-[1px]">2</div><div className="py-[1px]">3</div><div className="py-[1px]">4</div>
               </div>
-              <div className="text-primary-dark/80 space-y-1.5 whitespace-pre">
-                <div><span className="text-purple-400">@app</span><span className="text-blue-400">.get</span><span className="text-secondary-dark">("/users")</span></div>
-                <div><span className="text-primary-brand">def</span> <span className="text-blue-400">users</span>():</div>
-                <div className="relative">
-                  <span>    rows = db.execute(f"SELECT * FROM users")</span>
-                  {/* Wavy underline */}
-                  <div className="absolute left-4 -bottom-1 w-[330px] h-1 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2IiBoZWlnaHQ9IjMiPjxwYXRoIGQ9Ik0wLDFDMiwyLDQsMiw2LDFWM0gweiIgZmlsbD0iI2VmNDQ0NCIvPjwvc3ZnPg==')] repeat-x" />
-                  <span className="absolute left-[360px] top-0 bg-[#2A0F12] border border-status-security/30 text-status-security text-[10px] px-2 py-0.5 rounded flex items-center gap-1 font-sans z-10 shadow-lg">
-                    <Lock size={10} /> Unparameterised query
+              <div className="text-primary-dark/80 space-y-1.5 w-full">
+                <div className="py-[1px] whitespace-pre"><span className="text-purple-400">@app</span><span className="text-blue-400">.get</span><span className="text-secondary-dark">("/users")</span></div>
+                <div className="py-[1px] whitespace-pre"><span className="text-[#6D5EF0] font-medium">def</span> <span className="text-blue-400">users</span>():</div>
+                <div className="flex items-center justify-between gap-2 overflow-hidden py-[1px]">
+                  <div className="relative shrink-0 whitespace-pre">
+                    <span>    rows = db.execute(f"SELECT * FROM users")</span>
+                    {/* Wavy underline */}
+                    <div className="absolute left-4 -bottom-1 w-[330px] h-1 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2IiBoZWlnaHQ9IjMiPjxwYXRoIGQ9Ik0wLDFDMiwyLDQsMiw2LDFWM0gweiIgZmlsbD0iI2VmNDQ0NCIvPjwvc3ZnPg==')] repeat-x" />
+                  </div>
+                  <span className="bg-[#2A0F12] border border-status-security/30 text-status-security text-[10px] px-2 py-0.5 rounded flex items-center gap-1 font-sans z-10 shadow-lg shrink min-w-0">
+                    <Lock size={10} className="shrink-0" /> <span className="truncate">Unparameterised query</span>
                   </span>
                 </div>
-                <div className="relative">
-                  <span>    <span className="text-purple-400">return</span> jsonify(rows)</span>
-                  {/* Wavy underline */}
-                  <div className="absolute left-4 -bottom-1 w-[190px] h-1 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2IiBoZWlnaHQ9IjMiPjxwYXRoIGQ9Ik0wLDFDMiwyLDQsMiw2LDFWM0gweiIgZmlsbD0iI2Y1OWUwYiIvPjwvc3ZnPg==')] repeat-x" />
-                  <span className="absolute left-[220px] top-0 bg-[#2A1D0F] border border-status-structure/30 text-status-structure text-[10px] px-2 py-0.5 rounded flex items-center gap-1 font-sans z-10 shadow-lg">
-                    Missing error handling
+                <div className="flex items-center justify-between gap-2 overflow-hidden py-[1px]">
+                  <div className="relative shrink-0 whitespace-pre">
+                    <span>    <span className="text-purple-400">return</span> jsonify(rows)</span>
+                    {/* Wavy underline */}
+                    <div className="absolute left-4 -bottom-1 w-[190px] h-1 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI2IiBoZWlnaHQ9IjMiPjxwYXRoIGQ9Ik0wLDFDMiwyLDQsMiw2LDFWM0gweiIgZmlsbD0iI2Y1OWUwYiIvPjwvc3ZnPg==')] repeat-x" />
+                  </div>
+                  <span className="bg-[#2A1D0F] border border-status-structure/30 text-status-structure text-[10px] px-2 py-0.5 rounded flex items-center gap-1 font-sans z-10 shadow-lg shrink min-w-0">
+                    <span className="truncate">Missing error handling</span>
                   </span>
                 </div>
               </div>
@@ -83,13 +80,13 @@ export const Landing: React.FC<LandingProps> = ({ onAnalyze }) => {
         </motion.div>
 
         {/* Feature Pills */}
-        <div className="flex flex-wrap gap-3 mt-8">
-          <span className="px-3 py-1.5 rounded-full border border-primary-brand/30 bg-primary-brand/10 text-primary-brand text-xs font-medium">Structure analysis</span>
-          <span className="px-3 py-1.5 rounded-full border border-[#2A2E37] bg-[#1A1D23] text-secondary-dark text-xs font-medium">Security · Phase 2</span>
-          <span className="px-3 py-1.5 rounded-full border border-[#2A2E37] bg-[#1A1D23] text-secondary-dark text-xs font-medium">Auto-fix · Phase 4</span>
-          <span className="px-3 py-1.5 rounded-full border border-[#2A2E37] bg-[#1A1D23] text-secondary-dark text-xs font-medium">LLM checks · Phase 5</span>
+        <div className="flex flex-wrap gap-3 w-full max-w-[680px]">
+          <span className="px-4 py-2 rounded-full hover-glass text-[#6D5EF0] text-[12px] uppercase tracking-wider font-meta font-medium cursor-default">Structure analysis</span>
+          <span className="px-4 py-2 rounded-full hover-glass text-secondary-dark text-[12px] uppercase tracking-wider font-meta font-medium cursor-default">Security · Phase 2</span>
+          <span className="px-4 py-2 rounded-full hover-glass text-secondary-dark text-[12px] uppercase tracking-wider font-meta font-medium cursor-default">Auto-fix · Phase 4</span>
+          <span className="px-4 py-2 rounded-full hover-glass text-secondary-dark text-[12px] uppercase tracking-wider font-meta font-medium cursor-default">LLM checks · Phase 5</span>
         </div>
-      </motion.div>
+      </div>
 
 
       {/* Right Column: Upload Card */}
@@ -99,11 +96,11 @@ export const Landing: React.FC<LandingProps> = ({ onAnalyze }) => {
         transition={{ duration: 0.8, ease: "easeOut", delay: 0.1 }}
         className="w-full max-w-md lg:w-[480px] shrink-0"
       >
-        <div className="relative group">
-          {/* Glow effect */}
-          <div className="absolute -inset-[1px] bg-gradient-to-r from-primary-brand/40 to-blue-500/40 rounded-2xl blur-sm opacity-50 group-hover:opacity-100 transition duration-1000" />
+        <div className="relative group/upload rounded-2xl p-[1px]">
+          {/* Gradient border wrapper */}
+          <div className="absolute inset-0 bg-gradient-to-br from-[#6D5EF0]/40 to-blue-500/40 opacity-70 rounded-2xl group-hover/upload:from-[#6D5EF0] group-hover/upload:to-blue-500 group-hover/upload:opacity-100 transition-all duration-500" />
           
-          <div className="relative bg-[#13151A] border border-[#2A2E37] rounded-2xl p-6 shadow-2xl">
+          <div className="bg-[#0b0c10]/55 backdrop-blur-[16px] rounded-2xl p-6 relative z-10 h-full w-full group-hover/upload:shadow-[0_8px_32px_rgba(109,94,240,0.25)] transition-shadow duration-300">
             
             {/* Tabs */}
             <div className="flex gap-2 mb-8">
@@ -116,13 +113,13 @@ export const Landing: React.FC<LandingProps> = ({ onAnalyze }) => {
                   key={tab.id}
                   disabled={tab.disabled}
                   onClick={() => setActiveTab(tab.id as any)}
-                  className={`flex-1 p-3 rounded-xl border text-left transition-all relative overflow-hidden ${
+                  className={`flex-1 p-3 rounded-xl border border-transparent text-left transition-all relative overflow-hidden ${
                     tab.active 
-                      ? 'border-primary-brand/50 bg-primary-brand/5 shadow-[0_0_15px_rgba(45,212,167,0.1)]' 
-                      : 'border-[#2A2E37] bg-[#1A1D23]/50 hover:bg-[#1A1D23] hover:border-border-dark opacity-80'
+                      ? 'bg-gradient-to-br from-[#6D5EF0]/20 to-blue-500/20 shadow-[0_0_15px_rgba(109,94,240,0.2)]' 
+                      : 'bg-white/5 hover:bg-white/10 hover:border-white/10 opacity-80'
                   } ${tab.disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}
                 >
-                  <tab.icon size={16} className={`mb-2 ${tab.active ? 'text-primary-brand' : 'text-secondary-dark'}`} />
+                  <tab.icon size={16} className={`mb-2 ${tab.active ? 'text-[#6D5EF0]' : 'text-secondary-dark'}`} />
                   <div className={`text-sm font-semibold mb-1 ${tab.active ? 'text-primary-dark' : 'text-secondary-dark'}`}>{tab.label}</div>
                   <div className="text-[10px] text-secondary-dark font-mono">{tab.sub}</div>
                 </button>
@@ -130,7 +127,7 @@ export const Landing: React.FC<LandingProps> = ({ onAnalyze }) => {
             </div>
 
             {/* Content Area */}
-            <div className="bg-[#1A1D23] border border-[#2A2E37] rounded-xl p-5 mb-6">
+            <div className="bg-black/20 border border-white/5 rounded-xl p-5 mb-6">
               <AnimatePresence mode="wait">
                 {activeTab === 'github' && (
                   <motion.div
@@ -145,7 +142,7 @@ export const Landing: React.FC<LandingProps> = ({ onAnalyze }) => {
                       placeholder="https://github.com/username/my-ai-project"
                       value={githubUrl}
                       onChange={(e) => setGithubUrl(e.target.value)}
-                      className="w-full bg-[#0D0F12] border border-[#2A2E37] rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-primary-brand/50 focus:shadow-[0_0_10px_rgba(45,212,167,0.1)] transition-all placeholder:text-secondary-dark/50 mb-4"
+                      className="w-full bg-black/45 border border-white/5 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-[#6D5EF0]/50 focus:shadow-[0_0_10px_rgba(109,94,240,0.15)] transition-all placeholder:text-secondary-dark/50 mb-4"
                     />
                     <p className="text-xs text-secondary-dark leading-relaxed">
                       Public repositories only in this prototype — nothing is cloned or stored.
@@ -160,7 +157,18 @@ export const Landing: React.FC<LandingProps> = ({ onAnalyze }) => {
                     exit={{ opacity: 0, y: -10 }}
                     className="flex flex-col items-center justify-center text-center relative"
                   >
-                    <label className="w-full flex flex-col items-center justify-center py-6 border-2 border-dashed border-[#2A2E37] rounded-lg hover:border-primary-brand/30 hover:bg-primary-brand/5 transition-colors cursor-pointer">
+                    <label className="w-full flex flex-col items-center justify-center py-6 border-2 border-dashed border-[#6D5EF0]/40 rounded-lg hover:border-transparent transition-all cursor-pointer relative group/drop z-0">
+                      {/* Gradient border on hover */}
+                      <div className="absolute -inset-[2px] rounded-lg bg-gradient-to-br from-[#6D5EF0] to-blue-500 opacity-0 group-hover/drop:opacity-100 -z-10 transition-opacity" />
+                      {/* Inner background on hover */}
+                      <div className="absolute inset-0 rounded-lg bg-[#0b0c10] opacity-0 group-hover/drop:opacity-100 -z-10 transition-opacity" />
+                      <div className="absolute inset-0 rounded-lg bg-gradient-to-br from-[#6D5EF0]/15 to-blue-500/15 opacity-0 group-hover/drop:opacity-100 -z-10 transition-opacity" />
+                      
+                      <FileArchive size={24} className={selectedFile ? "text-[#6D5EF0] mb-2 relative z-10" : "text-secondary-dark mb-2 relative z-10"} />
+                      <div className="text-sm font-medium text-primary-dark relative z-10">
+                        {selectedFile ? selectedFile.name : 'Click to browse'}
+                      </div>
+                      <div className="text-xs text-secondary-dark mt-1 relative z-10">or drag and drop a .zip</div>
                       <input 
                         type="file" 
                         accept=".zip" 
@@ -171,11 +179,6 @@ export const Landing: React.FC<LandingProps> = ({ onAnalyze }) => {
                           }
                         }}
                       />
-                      <FileArchive size={24} className={selectedFile ? "text-primary-brand mb-2" : "text-secondary-dark mb-2"} />
-                      <div className="text-sm font-medium text-primary-dark">
-                        {selectedFile ? selectedFile.name : 'Click to browse'}
-                      </div>
-                      <div className="text-xs text-secondary-dark mt-1">or drag and drop a .zip</div>
                     </label>
                   </motion.div>
                 )}
@@ -188,18 +191,14 @@ export const Landing: React.FC<LandingProps> = ({ onAnalyze }) => {
               disabled={!isAnalyzeEnabled}
               className={`w-full py-4 rounded-xl font-semibold text-sm transition-all flex items-center justify-center gap-2 ${
                 isAnalyzeEnabled
-                  ? 'bg-primary-brand text-[#0D0F12] hover:bg-primary-brand/90 shadow-[0_0_20px_rgba(45,212,167,0.3)] hover:shadow-[0_0_30px_rgba(45,212,167,0.5)]'
-                  : 'bg-[#2A2E37] text-secondary-dark cursor-not-allowed'
+                  ? 'bg-[#6D5EF0] text-white hover:bg-[#6D5EF0]/95 shadow-[0_0_20px_rgba(109,94,240,0.3)] hover:shadow-[0_0_30px_rgba(109,94,240,0.5)]'
+                  : 'bg-[#2A2E37]/50 text-secondary-dark cursor-not-allowed border border-white/5'
               }`}
             >
               {isAnalyzeEnabled ? 'Analyze Project' : 'Waiting for a project...'}
               {isAnalyzeEnabled && <ChevronRight size={16} />}
             </button>
             
-            <p className="text-[11px] text-secondary-dark mt-4 text-center">
-              Phase 1 scores structure. Security and error handling arrive in Phase 2.
-            </p>
-
           </div>
         </div>
       </motion.div>
