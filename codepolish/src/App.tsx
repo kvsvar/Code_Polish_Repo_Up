@@ -5,7 +5,9 @@ import { Results } from './components/Results';
 import { DependencyGraphBackground } from './components/DependencyGraphBackground';
 import { Code2 } from 'lucide-react';
 
-type Screen = 'landing' | 'progress' | 'results';
+import { FileGraph } from './components/FileGraph';
+
+type Screen = 'landing' | 'progress' | 'graph-reveal' | 'results';
 
 function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('landing');
@@ -26,6 +28,8 @@ function App() {
     formData.append('file', file);
     
     try {
+      setCurrentScreen('graph-reveal');
+      
       const res = await fetch('http://localhost:8000/analyze', {
         method: 'POST',
         body: formData,
@@ -40,9 +44,43 @@ function App() {
         throw new Error(msg);
       }
       
-      const data = await res.json();
-      setAnalysisData(data);
-      setCurrentScreen('results');
+      const reader = res.body!.getReader();
+      const decoder = new TextDecoder("utf-8");
+      
+      setAnalysisData({ graph: { nodes: [], edges: [] } });
+      const liveNodes: any[] = [];
+      const liveEdges: any[] = [];
+      
+      let buffer = "";
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split('\n\n');
+        buffer = lines.pop() || "";
+        
+        for (const line of lines) {
+          if (line.startsWith("data: ")) {
+            const dataStr = line.replace("data: ", "");
+            try {
+              const event = JSON.parse(dataStr);
+              if (event.type === "file") {
+                liveNodes.push({ id: event.path, label: event.path.split('/').pop() });
+                setAnalysisData((prev: any) => ({ ...prev, graph: { nodes: [...liveNodes], edges: [...liveEdges] } }));
+              } else if (event.type === "edge") {
+                liveEdges.push({ source: event.source, target: event.target });
+                setAnalysisData((prev: any) => ({ ...prev, graph: { nodes: [...liveNodes], edges: [...liveEdges] } }));
+              } else if (event.type === "done") {
+                setAnalysisData(event.result);
+                setTimeout(() => setCurrentScreen('results'), 1000);
+              }
+            } catch (e) {
+               console.error("Failed to parse SSE line", e);
+            }
+          }
+        }
+      }
     } catch (err: any) {
       setError(err.message || "Failed to connect to the backend.");
       setCurrentScreen('landing');
@@ -78,9 +116,7 @@ function App() {
             )}
           </div>
           
-          <div className="px-4 py-1.5 rounded-full border border-[#2A2E37] bg-[#1A1D23]/50 text-secondary-dark text-xs font-medium font-mono backdrop-blur-md">
-            Phase 1 prototype
-          </div>
+
         </header>
       )}
 
@@ -92,6 +128,24 @@ function App() {
         
         {currentScreen === 'progress' && (
           <Progress />
+        )}
+        
+        {currentScreen === 'graph-reveal' && (
+          <div className="w-full max-w-5xl h-[70vh] min-h-[500px] p-8 flex flex-col items-center justify-center relative z-20">
+            <h2 className="text-2xl font-bold text-white mb-6 animate-pulse">Mapping Codebase Architecture...</h2>
+            {analysisData?.graph ? (
+              <FileGraph 
+                mode="streaming" 
+                nodes={analysisData.graph.nodes} 
+                edges={analysisData.graph.edges} 
+              />
+            ) : (
+              <div className="text-red-500">
+                Failed to load graph data.
+                <button className="ml-4 underline" onClick={() => setCurrentScreen('results')}>Continue</button>
+              </div>
+            )}
+          </div>
         )}
         
         {currentScreen === 'results' && (

@@ -5,3 +5,12 @@ codepolish/backend/__pycache__/
 codepolish/backend/venv/
 .DS_Store
 *.zip
+
+# Ignore temporary uploaded/unzipped files
+codepolish/backend/temp/
+codepolish/backend/temp_validation/
+codepolish/test_repo_unzipped/
+
+# Ignore all python cache folders globally
+**/__pycache__/
+**/.pytest_cache/

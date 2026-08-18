@@ -79,13 +79,7 @@ export const Landing: React.FC<LandingProps> = ({ onAnalyze }) => {
           </div>
         </motion.div>
 
-        {/* Feature Pills */}
-        <div className="flex flex-wrap gap-3 w-full max-w-[680px]">
-          <span className="px-4 py-2 rounded-full hover-glass text-[#6D5EF0] text-[12px] uppercase tracking-wider font-meta font-medium cursor-default">Structure analysis</span>
-          <span className="px-4 py-2 rounded-full hover-glass text-secondary-dark text-[12px] uppercase tracking-wider font-meta font-medium cursor-default">Security · Phase 2</span>
-          <span className="px-4 py-2 rounded-full hover-glass text-secondary-dark text-[12px] uppercase tracking-wider font-meta font-medium cursor-default">Auto-fix · Phase 4</span>
-          <span className="px-4 py-2 rounded-full hover-glass text-secondary-dark text-[12px] uppercase tracking-wider font-meta font-medium cursor-default">LLM checks · Phase 5</span>
-        </div>
+
       </div>
 
 

@@ -1,5 +1,5 @@
-import React from 'react';
-import { motion } from 'framer-motion';
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Code2, Home, Network, AlertTriangle, Archive, Clock, 
   Download, Moon, Sun, Lock, ChevronRight, File
@@ -7,6 +7,27 @@ import {
 import { 
   Radar, RadarChart, PolarGrid, PolarAngleAxis, ResponsiveContainer 
 } from 'recharts';
+import { GraphView } from './GraphView';
+
+interface Rubric {
+  final_score: number;
+  structural_score: number;
+  metrics_score: number;
+  category_breakdown: {
+    modularity: number;
+    analysability: number;
+    modifiability: number;
+    testability: number;
+  };
+  metric_ratings: {
+    cof: "good" | "regular" | "bad";
+    afferent_couplings: "good" | "regular" | "bad";
+    public_fields: "good" | "regular" | "bad";
+    public_methods: "good" | "regular" | "bad";
+    dit: "good" | "regular" | "bad";
+    lcom: "good" | "regular" | "bad";
+  };
+}
 
 interface ResultsProps {
   data: any;
@@ -14,22 +35,48 @@ interface ResultsProps {
 }
 
 export const Results: React.FC<ResultsProps> = ({ data, onReset }) => {
+  const [showGraph, setShowGraph] = useState(false);
   // Ensure data exists, fallback if undefined
   const d = data || {};
-  const score = d.score ?? 0;
+  const rubric: Rubric | undefined = d.rubric;
+  const score = rubric?.final_score ?? (d.score ?? 0);
+  const structuralScore = rubric?.structural_score ?? (d.score ?? 0);
+  const metricsScore = rubric?.metrics_score ?? 0;
+  
   const language = d.language || 'Unknown';
   const framework = d.framework || 'Unknown';
   const filesCount = d.files || 0;
   const issues = d.issues || [];
   const tree = d.tree || [];
 
-  const radarData = [
+  const radarData = rubric ? [
+    { subject: 'Modularity', A: rubric.category_breakdown.modularity, fullMark: 100 },
+    { subject: 'Analysability', A: rubric.category_breakdown.analysability, fullMark: 100 },
+    { subject: 'Modifiability', A: rubric.category_breakdown.modifiability, fullMark: 100 },
+    { subject: 'Testability', A: rubric.category_breakdown.testability, fullMark: 100 },
+    { subject: 'Structure', A: rubric.structural_score, fullMark: 100 },
+  ] : [
     { subject: 'Structure', A: score, fullMark: 100 },
     { subject: 'Security', A: 20, fullMark: 100 },
     { subject: 'Errors', A: 30, fullMark: 100 },
     { subject: 'Style', A: 45, fullMark: 100 },
     { subject: 'Docs', A: 10, fullMark: 100 },
   ];
+
+  const getScoreColor = (val: number) => {
+    if (val >= 80) return { text: 'text-status-verified', bg: 'bg-status-verified', border: 'border-status-verified' };
+    if (val >= 50) return { text: 'text-status-structure', bg: 'bg-status-structure', border: 'border-status-structure' };
+    return { text: 'text-status-security', bg: 'bg-status-security', border: 'border-status-security' };
+  };
+
+  const getRatingStyle = (rating: string) => {
+    switch (rating) {
+      case 'good': return 'bg-status-verified/20 text-status-verified border-status-verified/30';
+      case 'regular': return 'bg-status-structure/20 text-status-structure border-status-structure/30';
+      case 'bad': return 'bg-status-security/20 text-status-security border-status-security/30';
+      default: return 'bg-gray-500/20 text-gray-400 border-gray-500/30';
+    }
+  };
 
   const getSeverityColor = (sev: string) => {
     switch (sev?.toLowerCase()) {
@@ -130,6 +177,12 @@ export const Results: React.FC<ResultsProps> = ({ data, onReset }) => {
           </div>
           <div className="flex items-center gap-4">
             <button 
+              onClick={() => setShowGraph(!showGraph)}
+              className={`flex items-center gap-2 text-xs font-medium transition-colors px-3 py-1.5 border rounded-lg ${showGraph ? 'bg-[#6D5EF0] text-white border-[#6D5EF0]' : 'text-secondary-dark border-[#2A2E37] hover:border-[#6D5EF0]/30 hover:text-primary-dark'}`}
+            >
+              <Network size={14} /> {showGraph ? 'Hide Graph' : 'View Graph'}
+            </button>
+            <button 
               onClick={handleDownloadReport}
               className="flex items-center gap-2 text-xs font-medium text-secondary-dark hover:text-primary-dark transition-colors px-3 py-1.5 border border-[#2A2E37] rounded-lg hover:border-primary-dark/30"
             >
@@ -147,6 +200,16 @@ export const Results: React.FC<ResultsProps> = ({ data, onReset }) => {
 
         {/* Scrollable Dashboard */}
         <div className="flex-1 overflow-y-auto p-6 md:p-8 space-y-6">
+          
+          <AnimatePresence>
+            {showGraph && d.graph && (
+              <GraphView 
+                nodes={d.graph.nodes} 
+                edges={d.graph.edges} 
+                onClose={() => setShowGraph(false)} 
+              />
+            )}
+          </AnimatePresence>
           
           <motion.div 
             id="overview"
@@ -173,9 +236,17 @@ export const Results: React.FC<ResultsProps> = ({ data, onReset }) => {
               {/* Info */}
               <div className="flex-1">
                 <div className="text-[10px] font-bold text-secondary-dark tracking-wider mb-2 uppercase">Project Readiness Score</div>
-                <h2 className="text-3xl font-bold text-status-structure mb-3">
+                <h2 className={`text-3xl font-bold mb-3 ${getScoreColor(score).text}`}>
                   {score >= 90 ? 'Excellent' : score >= 70 ? 'Good' : 'Needs Improvement'}
                 </h2>
+                
+                {rubric && (
+                  <div className="text-xs text-secondary-dark mb-4 flex items-center gap-2">
+                    <span className="bg-[#1A1D23] px-2 py-1 rounded border border-[#2A2E37]">Structure: {structuralScore}</span>
+                    <span className="bg-[#1A1D23] px-2 py-1 rounded border border-[#2A2E37]">Metrics: {metricsScore}</span>
+                  </div>
+                )}
+                
                 <p className="text-sm text-secondary-dark mb-6 max-w-md leading-relaxed">
                   Your project works, but check the structural improvements to be production ready.
                 </p>
@@ -206,64 +277,113 @@ export const Results: React.FC<ResultsProps> = ({ data, onReset }) => {
             transition={{ delay: 0.1 }}
             className="grid grid-cols-2 md:grid-cols-5 gap-4"
           >
-            {/* Structure */}
-            <div className="bg-[#13151A] border-2 border-primary-brand/30 rounded-xl p-4 shadow-[0_0_15px_rgba(109,94,240,0.15)] relative overflow-hidden">
-              <div className="flex items-center gap-2 mb-4 text-primary-brand font-medium">
-                <Network size={16} /> <span className="font-semibold text-sm text-white">Structure</span>
-              </div>
-              <div className="text-2xl font-bold text-white flex items-baseline gap-1 mb-3">
-                {score} <span className="text-xs text-secondary-dark font-normal">/100</span>
-              </div>
-              <div className="h-1.5 w-full bg-[#2A2E37] rounded-full overflow-hidden">
-                <div className="h-full bg-primary-brand rounded-full" style={{ width: `${score}%` }} />
-              </div>
-            </div>
+            {rubric ? (
+              <>
+                <div className="bg-[#13151A] border-2 border-primary-brand/30 rounded-xl p-4 shadow-[0_0_15px_rgba(109,94,240,0.15)] relative overflow-hidden">
+                  <div className="flex items-center gap-2 mb-4 text-primary-brand font-medium">
+                    <Network size={16} /> <span className="font-semibold text-sm text-white">Structure</span>
+                  </div>
+                  <div className="text-2xl font-bold text-white flex items-baseline gap-1 mb-3">
+                    {rubric.structural_score} <span className="text-xs text-secondary-dark font-normal">/100</span>
+                  </div>
+                  <div className="h-1.5 w-full bg-[#2A2E37] rounded-full overflow-hidden">
+                    <div className="h-full bg-primary-brand rounded-full" style={{ width: `${rubric.structural_score}%` }} />
+                  </div>
+                </div>
 
-            {/* Other categories (Mocked) */}
-            <div className="bg-[#13151A] border border-[#2A2E37] rounded-xl p-4 relative overflow-hidden opacity-60">
-              <div className="absolute right-2 top-2 bg-status-security/20 text-status-security text-[9px] px-1.5 py-0.5 rounded font-bold">Phase 2</div>
-              <div className="flex items-center gap-2 mb-4 text-status-security">
-                <Lock size={16} /> <span className="font-semibold text-sm text-white">Security</span>
-              </div>
-              <div className="text-2xl font-bold text-secondary-dark flex items-baseline gap-1 mb-3">
-                -- <span className="text-xs font-normal">/100</span>
-              </div>
-              <div className="h-1.5 w-full bg-[#2A2E37] rounded-full overflow-hidden" />
-            </div>
-
-            <div className="bg-[#13151A] border border-[#2A2E37] rounded-xl p-4 relative overflow-hidden opacity-60">
-              <div className="absolute right-2 top-2 bg-status-structure/20 text-status-structure text-[9px] px-1.5 py-0.5 rounded font-bold">Phase 2</div>
-              <div className="flex items-center gap-2 mb-4 text-status-structure">
-                <AlertTriangle size={16} /> <span className="font-semibold text-sm text-white">Errors</span>
-              </div>
-              <div className="text-2xl font-bold text-secondary-dark flex items-baseline gap-1 mb-3">
-                -- <span className="text-xs font-normal">/100</span>
-              </div>
-              <div className="h-1.5 w-full bg-[#2A2E37] rounded-full overflow-hidden" />
-            </div>
-
-            <div className="bg-[#13151A] border border-[#2A2E37] rounded-xl p-4 relative overflow-hidden opacity-60">
-              <div className="absolute right-2 top-2 bg-status-style/20 text-status-style text-[9px] px-1.5 py-0.5 rounded font-bold">Phase 5</div>
-              <div className="flex items-center gap-2 mb-4 text-status-style">
-                <Code2 size={16} /> <span className="font-semibold text-sm text-white">Style</span>
-              </div>
-              <div className="text-2xl font-bold text-secondary-dark flex items-baseline gap-1 mb-3">
-                -- <span className="text-xs font-normal">/100</span>
-              </div>
-              <div className="h-1.5 w-full bg-[#2A2E37] rounded-full overflow-hidden" />
-            </div>
-
-            <div className="bg-[#13151A] border border-[#2A2E37] rounded-xl p-4 relative overflow-hidden opacity-60">
-              <div className="absolute right-2 top-2 bg-purple-500/20 text-purple-400 text-[9px] px-1.5 py-0.5 rounded font-bold">Phase 5</div>
-              <div className="flex items-center gap-2 mb-4 text-purple-400">
-                <Archive size={16} /> <span className="font-semibold text-sm text-white">Documentation</span>
-              </div>
-              <div className="text-2xl font-bold text-secondary-dark flex items-baseline gap-1 mb-3">
-                -- <span className="text-xs font-normal">/100</span>
-              </div>
-              <div className="h-1.5 w-full bg-[#2A2E37] rounded-full overflow-hidden" />
-            </div>
+                {['Modularity', 'Analysability', 'Modifiability', 'Testability'].map((cat, idx) => {
+                  const val = rubric.category_breakdown[cat.toLowerCase() as keyof typeof rubric.category_breakdown];
+                  const color = getScoreColor(val);
+                  return (
+                    <div key={idx} className="bg-[#13151A] border border-[#2A2E37] rounded-xl p-4 relative overflow-hidden">
+                      <div className={`flex items-center gap-2 mb-4 ${color.text}`}>
+                        <Archive size={16} /> <span className="font-semibold text-sm text-white">{cat}</span>
+                      </div>
+                      <div className="text-2xl font-bold text-secondary-dark flex items-baseline gap-1 mb-3">
+                        {val} <span className="text-xs font-normal">/100</span>
+                      </div>
+                      <div className="h-1.5 w-full bg-[#2A2E37] rounded-full overflow-hidden">
+                         <div className={`h-full ${color.bg} rounded-full`} style={{ width: `${val}%` }} />
+                      </div>
+                    </div>
+                  );
+                })}
+              </>
+            ) : (
+              <>
+                <div className="bg-[#13151A] border-2 border-primary-brand/30 rounded-xl p-4 shadow-[0_0_15px_rgba(109,94,240,0.15)] relative overflow-hidden">
+                  <div className="flex items-center gap-2 mb-4 text-primary-brand font-medium">
+                    <Network size={16} /> <span className="font-semibold text-sm text-white">Structure</span>
+                  </div>
+                  <div className="text-2xl font-bold text-white flex items-baseline gap-1 mb-3">
+                    {score} <span className="text-xs text-secondary-dark font-normal">/100</span>
+                  </div>
+                  <div className="h-1.5 w-full bg-[#2A2E37] rounded-full overflow-hidden">
+                    <div className="h-full bg-primary-brand rounded-full" style={{ width: `${score}%` }} />
+                  </div>
+                </div>
+                {/* Fallbacks if no rubric */}
+                <div className="bg-[#13151A] border border-[#2A2E37] rounded-xl p-4 relative overflow-hidden opacity-60">
+                  <div className="absolute right-2 top-2 bg-status-security/20 text-status-security text-[9px] px-1.5 py-0.5 rounded font-bold">Phase 2</div>
+                  <div className="flex items-center gap-2 mb-4 text-status-security">
+                    <Lock size={16} /> <span className="font-semibold text-sm text-white">Security</span>
+                  </div>
+                  <div className="text-2xl font-bold text-secondary-dark flex items-baseline gap-1 mb-3">
+                    -- <span className="text-xs font-normal">/100</span>
+                  </div>
+                  <div className="h-1.5 w-full bg-[#2A2E37] rounded-full overflow-hidden" />
+                </div>
+              </>
+            )}
           </motion.div>
+
+          {/* METRIC RATINGS (Only if rubric exists) */}
+          {rubric && (
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.15 }}
+              className="bg-[#13151A] border border-[#2A2E37] rounded-2xl flex flex-col shadow-lg overflow-hidden"
+            >
+              <div className="p-5 border-b border-[#2A2E37] flex items-center justify-between bg-[#1A1D23]/50">
+                <h3 className="font-bold flex items-center gap-2 text-white">
+                  <Network size={16} className="text-primary-brand" /> 
+                  Codebase Metrics Breakdown
+                </h3>
+              </div>
+              <div className="p-5 overflow-x-auto">
+                {rubric.metric_ratings.dit === null || rubric.metric_ratings.lcom === null ? (
+                  <div className="mb-4 text-xs text-status-structure bg-status-structure/10 border border-status-structure/20 p-3 rounded-lg flex items-center gap-2">
+                    <AlertTriangle size={14} /> Limited class-based structure detected — some OOP metrics (DIT, LCOM) are less applicable to this codebase.
+                  </div>
+                ) : null}
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  {[
+                    { key: 'cof', label: 'Coupling Factor', tip: 'How interconnected your files are overall — lower means easier to change one thing without breaking others' },
+                    { key: 'afferent_couplings', label: 'Afferent Couplings', tip: 'How many other files depend on this one — high values mean changes here ripple outward' },
+                    { key: 'public_fields', label: 'Public Fields', tip: 'How much internal state is exposed directly — more exposure means easier to accidentally misuse' },
+                    { key: 'public_methods', label: 'Public Methods', tip: 'How many responsibilities a class/module exposes — very high counts often mean it is doing too much' },
+                    { key: 'dit', label: 'Depth of Inheritance', tip: 'How deep the class hierarchy goes — deep chains are harder to trace and reason about' },
+                    { key: 'lcom', label: 'Cohesion (LCOM)', tip: 'Whether a class\'s methods actually work together — low cohesion means the class may need to be split' },
+                  ].map((m) => {
+                    const rating = rubric.metric_ratings[m.key as keyof typeof rubric.metric_ratings] || 'good';
+                    return (
+                      <div key={m.key} className="group relative bg-[#0D0F12] border border-[#2A2E37] p-4 rounded-xl flex items-center justify-between hover:border-[#6D5EF0]/50 transition-colors cursor-help">
+                        <span className="text-sm font-semibold text-secondary-dark group-hover:text-primary-dark transition-colors">{m.label}</span>
+                        <span className={`text-[10px] uppercase tracking-wider font-bold px-2.5 py-1 rounded-full border ${getRatingStyle(rating)}`}>
+                          {rating}
+                        </span>
+                        {/* Tooltip */}
+                        <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-2 bg-[#1A1D23] border border-[#2A2E37] text-xs text-primary-dark rounded shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 text-center pointer-events-none">
+                          {m.tip}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </motion.div>
+          )}
 
           {/* TWO COLUMNS: Issues & Tree */}
           <motion.div 
