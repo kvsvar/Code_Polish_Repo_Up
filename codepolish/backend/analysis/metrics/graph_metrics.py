@@ -12,3 +12,14 @@ def cof(graph: nx.DiGraph) -> float:
     n = graph.number_of_nodes()
     c = graph.number_of_edges()
     return c / (n * n - n) if n > 1 else 0.0
+
+def detect_circular_dependencies(graph: nx.DiGraph) -> list[list[str]]:
+    """
+    Uses Tarjan's Strongly Connected Components algorithm to detect circular dependencies.
+    Returns a list of strongly connected components that have more than 1 node (i.e., cycles).
+    """
+    cycles = []
+    for component in nx.strongly_connected_components(graph):
+        if len(component) > 1:
+            cycles.append(list(component))
+    return cycles

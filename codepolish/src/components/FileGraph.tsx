@@ -42,10 +42,11 @@ export const FileGraph: React.FC<FileGraphProps> = ({ nodes, edges, mode, search
   const gRef = useRef<SVGGElement>(null);
 
   const getFolderColor = (path: string) => {
-    if (path.includes('components/')) return '#2DD4A7'; // Teal
-    if (path.includes('services/') || path.includes('api/')) return '#6D5EF0'; // Purple
-    if (path.includes('utils/') || path.includes('helpers/')) return '#3B82F6'; // Blue
-    if (path.includes('tests/')) return '#9CA3AF'; // Gray
+    const normalizedPath = path.replace(/\\/g, '/');
+    if (normalizedPath.includes('components/')) return '#2DD4A7'; // Teal
+    if (normalizedPath.includes('services/') || normalizedPath.includes('api/')) return '#6D5EF0'; // Purple
+    if (normalizedPath.includes('utils/') || normalizedPath.includes('helpers/')) return '#3B82F6'; // Blue
+    if (normalizedPath.includes('tests/')) return '#9CA3AF'; // Gray
     return '#4B5563'; // Slate
   };
 
@@ -180,7 +181,7 @@ export const FileGraph: React.FC<FileGraphProps> = ({ nodes, edges, mode, search
 
   return (
     <div className="w-full h-full relative overflow-hidden flex items-center justify-center">
-      {nodes.length === 0 ? (
+      {nodes.length === 0 && mode !== 'streaming' ? (
         <div className="text-secondary-dark text-sm z-10 absolute">No graph data available</div>
       ) : (
         <svg 

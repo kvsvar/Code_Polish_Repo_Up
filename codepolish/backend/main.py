@@ -19,3 +19,8 @@ app.include_router(tree.router)
 @app.get("/")
 def read_root():
     return {"message": "CodePolish API is running"}
+
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon():
+    from fastapi import Response
+    return Response(status_code=204)

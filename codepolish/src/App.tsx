@@ -28,12 +28,14 @@ function App() {
     formData.append('file', file);
     
     try {
-      setCurrentScreen('graph-reveal');
+      setAnalysisData({ graph: { nodes: [], edges: [] } });
       
       const res = await fetch('http://localhost:8000/analyze', {
         method: 'POST',
         body: formData,
       });
+      
+      setCurrentScreen('graph-reveal');
       
       if (!res.ok) {
         let msg = "Analysis failed";
@@ -47,7 +49,6 @@ function App() {
       const reader = res.body!.getReader();
       const decoder = new TextDecoder("utf-8");
       
-      setAnalysisData({ graph: { nodes: [], edges: [] } });
       const liveNodes: any[] = [];
       const liveEdges: any[] = [];
       
@@ -66,7 +67,7 @@ function App() {
             try {
               const event = JSON.parse(dataStr);
               if (event.type === "file") {
-                liveNodes.push({ id: event.path, label: event.path.split('/').pop() });
+                liveNodes.push({ id: event.path, label: event.path.replace(/\\/g, '/').split('/').pop() });
                 setAnalysisData((prev: any) => ({ ...prev, graph: { nodes: [...liveNodes], edges: [...liveEdges] } }));
               } else if (event.type === "edge") {
                 liveEdges.push({ source: event.source, target: event.target });

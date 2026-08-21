@@ -26,7 +26,7 @@ async def analyze_project(file: UploadFile = File(...)):
             from analysis.rules.structural import run_structural_rules
             from services.tree_service import generate_project_tree
             from services.graph_service import build_dependency_graph_stream, serialize_graph
-            from analysis.metrics.graph_metrics import cof, afferent_couplings
+            from analysis.metrics.graph_metrics import cof, afferent_couplings, detect_circular_dependencies
             from analysis.metrics.class_metrics import calculate_repo_averages
             from analysis.scorer import compute_repo_score
             
@@ -45,6 +45,19 @@ async def analyze_project(file: UploadFile = File(...)):
                 
             # Finish analysis
             findings, score = run_structural_rules(project_path)
+            
+            # Detect circular dependencies using Tarjan's SCC
+            cycles = detect_circular_dependencies(graph)
+            for cycle in cycles:
+                findings.append({
+                    "title": "Circular Dependency Detected",
+                    "description": f"Detected a circular dependency (via Tarjan's SCC) involving: {', '.join(cycle)}",
+                    "severity": "High"
+                })
+                score -= 15
+            
+            score = max(0, score)
+            
             tree = generate_project_tree(project_path)
             
             sys_cof = cof(graph)
