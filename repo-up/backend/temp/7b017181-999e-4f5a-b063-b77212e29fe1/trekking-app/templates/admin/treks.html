@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Manage Treks{% endblock %}
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>Treks</h2>
+    <a href="{{ url_for('admin.new_trek') }}" class="btn btn-primary">+ New Trek</a>
+</div>
+
+<form method="GET" class="mb-3 d-flex gap-2">
+    <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="Search by name, location, or ID">
+    <button class="btn btn-outline-secondary">Search</button>
+</form>
+
+<table class="table table-bordered bg-white">
+    <thead>
+    <tr>
+        <th>ID</th><th>Name</th><th>Location</th><th>Difficulty</th><th>Slots</th>
+        <th>Status</th><th>Staff</th><th>Actions</th>
+    </tr>
+    </thead>
+    <tbody>
+    {% for t in treks %}
+        <tr>
+            <td>{{ t.id }}</td>
+            <td>{{ t.name }}</td>
+            <td>{{ t.location }}</td>
+            <td>{{ t.difficulty }}</td>
+            <td>{{ t.available_slots }} / {{ t.total_slots }}</td>
+            <td><span class="badge bg-info text-dark">{{ t.status }}</span></td>
+            <td>{{ t.staff_name or "Unassigned" }}</td>
+            <td>
+                <a href="{{ url_for('admin.edit_trek', trek_id=t.id) }}" class="btn btn-sm btn-outline-primary">Edit</a>
+                <a href="{{ url_for('admin.assign_staff', trek_id=t.id) }}" class="btn btn-sm btn-outline-secondary">Assign Staff</a>
+                <form method="POST" action="{{ url_for('admin.delete_trek', trek_id=t.id) }}" class="d-inline"
+                      onsubmit="return confirm('Delete this trek?');">
+                    <button class="btn btn-sm btn-outline-danger">Delete</button>
+                </form>
+            </td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

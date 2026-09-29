@@ -1,0 +1,12 @@
+# Python/TS Test Fixture
+- Circular Dependency: src/a.py <-> src/b.py, src/x.ts <-> src/y.ts
+- God Class: src/god.py
+- Deep Inheritance: src/hierarchy.ts
+- Clean file: src/clean.py
+- .env: .env
+- .env.example: .env.example
+- Hardcoded Secret: src/secrets.py
+- Bad IO (No try/catch): src/bad_io.py
+- Good IO (With try/catch): src/good_io.ts
+- Dangerous (eval): src/dangerous.py
+- Legit Dangerous (eval config): webpack.config.js

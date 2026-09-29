@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Staff{% endblock %}
+{% block content %}
+<h2 class="mb-3">Staff</h2>
+<form method="GET" class="mb-3 d-flex gap-2">
+    <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="Search by name or ID">
+    <button class="btn btn-outline-secondary">Search</button>
+</form>
+<table class="table table-bordered bg-white">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Status</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for s in staff %}
+        <tr>
+            <td>{{ s.id }}</td>
+            <td>{{ s.name }}</td>
+            <td>{{ s.email }}</td>
+            <td><span class="badge bg-secondary">{{ s.staff_status }}</span></td>
+            <td>
+                {% if s.staff_status != 'approved' %}
+                <form method="POST" action="{{ url_for('admin.approve_staff', staff_id=s.id) }}" class="d-inline">
+                    <button class="btn btn-sm btn-success">Approve</button>
+                </form>
+                {% endif %}
+                {% if s.staff_status != 'blacklisted' %}
+                <form method="POST" action="{{ url_for('admin.blacklist_staff', staff_id=s.id) }}" class="d-inline">
+                    <button class="btn btn-sm btn-danger">Blacklist</button>
+                </form>
+                {% endif %}
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

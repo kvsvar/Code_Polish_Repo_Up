@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Assign Staff{% endblock %}
+{% block content %}
+<h2 class="mb-3">Assign Staff to "{{ trek.name }}"</h2>
+{% if staff_list %}
+<form method="POST" class="col-md-6">
+    <div class="mb-3">
+        <label class="form-label">Approved Staff</label>
+        <select name="staff_id" class="form-select" required>
+            {% for s in staff_list %}
+                <option value="{{ s.id }}" {% if trek.assigned_staff_id == s.id %}selected{% endif %}>
+                    {{ s.name }} ({{ s.email }})
+                </option>
+            {% endfor %}
+        </select>
+    </div>
+    <button type="submit" class="btn btn-primary">Assign &amp; Open Trek</button>
+    <a href="{{ url_for('admin.treks') }}" class="btn btn-secondary">Cancel</a>
+</form>
+{% else %}
+<p class="text-muted">No approved staff available yet. Approve a staff member first.</p>
+{% endif %}
+{% endblock %}

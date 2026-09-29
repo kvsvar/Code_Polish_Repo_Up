@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Users{% endblock %}
+{% block content %}
+<h2 class="mb-3">Users (Trekkers)</h2>
+<form method="GET" class="mb-3 d-flex gap-2">
+    <input type="text" name="q" value="{{ q }}" class="form-control" placeholder="Search by name or ID">
+    <button class="btn btn-outline-secondary">Search</button>
+</form>
+<table class="table table-bordered bg-white">
+    <thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Status</th><th>Actions</th></tr></thead>
+    <tbody>
+    {% for u in users %}
+        <tr>
+            <td>{{ u.id }}</td><td>{{ u.name }}</td><td>{{ u.email }}</td>
+            <td>
+                {% if u.is_blacklisted %}
+                    <span class="badge bg-danger">Blacklisted</span>
+                {% else %}
+                    <span class="badge bg-success">Active</span>
+                {% endif %}
+            </td>
+            <td>
+                {% if u.is_blacklisted %}
+                <form method="POST" action="{{ url_for('admin.unblacklist_user', user_id=u.id) }}" class="d-inline">
+                    <button class="btn btn-sm btn-success">Unblock</button>
+                </form>
+                {% else %}
+                <form method="POST" action="{{ url_for('admin.blacklist_user', user_id=u.id) }}" class="d-inline">
+                    <button class="btn btn-sm btn-danger">Blacklist</button>
+                </form>
+                {% endif %}
+            </td>
+        </tr>
+    {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
