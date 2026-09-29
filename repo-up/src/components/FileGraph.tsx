@@ -1,8 +1,9 @@
 import React, { useMemo, useEffect, useState, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import * as d3Force from 'd3-force';
 import * as d3Zoom from 'd3-zoom';
 import { select } from 'd3-selection';
+import 'd3-transition';
 
 interface Finding {
   category: string;
@@ -228,15 +229,12 @@ export const FileGraph: React.FC<FileGraphProps> = ({
   const focusedNodeId = focusPath.length > 0 ? focusPath[focusPath.length - 1] : null;
   
   useEffect(() => {
-    if (focusedNodeId && svgRef.current && zoomRef.current && nodeMap[focusedNodeId]) {
-      const targetNode = nodeMap[focusedNodeId];
+    if (focusedNodeId && svgRef.current && zoomRef.current && (nodeMap as Record<string, ForceNode>)[focusedNodeId]) {
+      const targetNode = (nodeMap as Record<string, ForceNode>)[focusedNodeId];
       if (targetNode.x !== undefined && targetNode.y !== undefined) {
         const svg = select(svgRef.current);
         // Desired scale
         const scale = 1.5;
-        // SVG dimensions
-        const width = svgRef.current.clientWidth || VIEWBOX_WIDTH;
-        const height = svgRef.current.clientHeight || VIEWBOX_HEIGHT;
         // We calculate pan by considering SVG client dimensions but the viewport coordinate system is fixed to viewBox size
         // Since viewBox uses width/height, we map to that.
         const tx = VIEWBOX_WIDTH / 2 - targetNode.x * scale;
@@ -318,7 +316,7 @@ export const FileGraph: React.FC<FileGraphProps> = ({
           <g ref={gRef}>
             {/* EDGES */}
             <g className="edges">
-              {edgeMap.map((e, idx) => {
+              {edgeMap.map((e, _idx) => {
                 const src = displayNodes.find(n => n.id === e.source.id);
                 const tgt = displayNodes.find(n => n.id === e.target.id);
                 if (!src || !tgt || src.x === undefined || src.y === undefined || tgt.x === undefined || tgt.y === undefined) return null;

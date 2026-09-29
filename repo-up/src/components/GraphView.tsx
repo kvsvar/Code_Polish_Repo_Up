@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Network, File, ArrowLeft, Search, ZoomIn, Maximize, ShieldAlert, CheckCircle2, ChevronRight, ExternalLink } from 'lucide-react';
+import { X, Network, File, ArrowLeft, Search, Maximize, ShieldAlert, CheckCircle2, ChevronRight, ExternalLink } from 'lucide-react';
 import { FileGraph } from './FileGraph';
 import { CodeViewer } from './CodeViewer';
 

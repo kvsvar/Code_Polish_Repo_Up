@@ -7,7 +7,13 @@ LANGUAGE_CONFIG = {
         "inheritance_nodes": ["superclass", "interfaces"],
         "try_nodes": ["try_statement", "try_with_resources_statement"],
         "call_nodes": ["method_invocation"],
-        "is_oo": True
+        "assert_nodes": ["assert_statement"],            # Java assert (not security-boundary)
+        "return_nodes": ["return_statement"],
+        "variable_nodes": ["local_variable_declaration"],
+        "parameter_nodes": ["formal_parameter"],
+        "string_nodes": ["string_literal"],
+        "numeric_nodes": ["decimal_integer_literal", "decimal_floating_point_literal"],
+        "is_oo": True,
     },
     "C++": {
         "extensions": [".cpp", ".cc", ".cxx", ".hpp", ".h"],
@@ -17,7 +23,13 @@ LANGUAGE_CONFIG = {
         "inheritance_nodes": ["base_class_clause"],
         "try_nodes": ["try_statement"],
         "call_nodes": ["call_expression"],
-        "is_oo": True
+        "assert_nodes": [],                              # C++ assert is a macro — no AST node
+        "return_nodes": ["return_statement"],
+        "variable_nodes": ["declaration"],
+        "parameter_nodes": ["parameter_declaration"],
+        "string_nodes": ["string_literal"],
+        "numeric_nodes": ["number_literal"],
+        "is_oo": True,
     },
     "Python": {
         "extensions": [".py"],
@@ -27,7 +39,13 @@ LANGUAGE_CONFIG = {
         "inheritance_nodes": ["argument_list"],
         "try_nodes": ["try_statement"],
         "call_nodes": ["call"],
-        "is_oo": True
+        "assert_nodes": ["assert_statement"],
+        "return_nodes": ["return_statement"],
+        "variable_nodes": ["assignment"],
+        "parameter_nodes": ["parameters"],
+        "string_nodes": ["string"],
+        "numeric_nodes": ["integer", "float"],
+        "is_oo": True,
     },
     "JavaScript": {
         "extensions": [".js", ".jsx"],
@@ -37,7 +55,13 @@ LANGUAGE_CONFIG = {
         "inheritance_nodes": ["class_heritage"],
         "try_nodes": ["try_statement"],
         "call_nodes": ["call_expression"],
-        "is_oo": True
+        "assert_nodes": [],                              # no native assert keyword in JS
+        "return_nodes": ["return_statement"],
+        "variable_nodes": ["lexical_declaration", "variable_declaration"],
+        "parameter_nodes": ["formal_parameters"],
+        "string_nodes": ["string", "template_string"],
+        "numeric_nodes": ["number"],
+        "is_oo": True,
     },
     "TypeScript": {
         "extensions": [".ts", ".tsx"],
@@ -47,6 +71,12 @@ LANGUAGE_CONFIG = {
         "inheritance_nodes": ["class_heritage"],
         "try_nodes": ["try_statement"],
         "call_nodes": ["call_expression"],
-        "is_oo": True
-    }
+        "assert_nodes": [],                              # no native assert in TS
+        "return_nodes": ["return_statement"],
+        "variable_nodes": ["lexical_declaration", "variable_declaration"],
+        "parameter_nodes": ["formal_parameters"],
+        "string_nodes": ["string", "template_string"],
+        "numeric_nodes": ["number"],
+        "is_oo": True,
+    },
 }

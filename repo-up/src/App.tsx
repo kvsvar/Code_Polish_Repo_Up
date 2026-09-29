@@ -4,8 +4,10 @@ import { Progress } from './components/Progress';
 import { Results } from './components/Results';
 import { DependencyGraphBackground } from './components/DependencyGraphBackground';
 import { Code2 } from 'lucide-react';
-
 import { FileGraph } from './components/FileGraph';
+
+/** Centralised backend URL — override via VITE_API_URL env var. */
+export const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000';
 
 type Screen = 'landing' | 'progress' | 'graph-reveal' | 'results';
 
@@ -14,84 +16,106 @@ function App() {
   const [analysisData, setAnalysisData] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const showError = (msg: string) => {
+    setError(msg);
+    setTimeout(() => setError(null), 5000);
+  };
+
   const handleAnalyze = async (file?: File) => {
     if (!file) {
-      setError("Please select a ZIP file first.");
-      setTimeout(() => setError(null), 3000);
+      showError('Please select a ZIP file first.');
       return;
     }
-    
+
+    if (!file.name.toLowerCase().endsWith('.zip')) {
+      showError('Only .zip files are supported. Please select a valid ZIP archive.');
+      return;
+    }
+
     setCurrentScreen('progress');
     setError(null);
-    
+
     const formData = new FormData();
     formData.append('file', file);
-    
+
     try {
       setAnalysisData({ graph: { nodes: [], edges: [] } });
-      
-      const res = await fetch('http://localhost:8000/analyze', {
+
+      const res = await fetch(`${API_BASE}/analyze`, {
         method: 'POST',
         body: formData,
       });
-      
+
       setCurrentScreen('graph-reveal');
-      
+
       if (!res.ok) {
-        let msg = "Analysis failed";
+        let msg = 'Analysis failed.';
         try {
           const errData = await res.json();
-          msg = errData.detail || msg;
-        } catch(e) {}
+          // Support both {"error":{"message":"..."}} and legacy {"detail":"..."}
+          msg = errData?.error?.message ?? errData?.detail ?? msg;
+        } catch (_) { /* ignore parse errors */ }
         throw new Error(msg);
       }
-      
+
       const reader = res.body!.getReader();
-      const decoder = new TextDecoder("utf-8");
-      
-      const liveNodes: any[] = [];
-      const liveEdges: any[] = [];
-      
-      let buffer = "";
+      const decoder = new TextDecoder('utf-8');
+
+      const liveNodes: { id: string; label: string }[] = [];
+      const liveEdges: { source: string; target: string }[] = [];
+
+      let buffer = '';
+      let receivedDone = false;
+
       while (true) {
         const { value, done } = await reader.read();
         if (done) break;
-        
+
         buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split('\n\n');
-        buffer = lines.pop() || "";
-        
+        buffer = lines.pop() ?? '';
+
         for (const line of lines) {
-          if (line.startsWith("data: ")) {
-            const dataStr = line.replace("data: ", "");
+          if (line.startsWith('data: ')) {
+            const dataStr = line.replace('data: ', '');
             try {
               const event = JSON.parse(dataStr);
-              if (event.type === "file") {
-                liveNodes.push({ id: event.path, label: event.path.replace(/\\/g, '/').split('/').pop() });
+              if (event.type === 'file') {
+                liveNodes.push({ id: event.path, label: event.path.replace(/\\/g, '/').split('/').pop() ?? event.path });
                 setAnalysisData((prev: any) => ({ ...prev, graph: { nodes: [...liveNodes], edges: [...liveEdges] } }));
-              } else if (event.type === "edge") {
+              } else if (event.type === 'edge') {
                 liveEdges.push({ source: event.source, target: event.target });
                 setAnalysisData((prev: any) => ({ ...prev, graph: { nodes: [...liveNodes], edges: [...liveEdges] } }));
-              } else if (event.type === "done") {
+              } else if (event.type === 'done') {
+                receivedDone = true;
                 setAnalysisData(event.result);
                 setTimeout(() => setCurrentScreen('results'), 1000);
+              } else if (event.type === 'error') {
+                // Backend emitted a stream-level error event
+                const streamMsg = event.error?.message ?? 'Analysis encountered an error.';
+                throw new Error(streamMsg);
               }
             } catch (e) {
-               console.error("Failed to parse SSE line", e);
+              if (e instanceof Error && e.message !== 'Failed to parse SSE line') throw e;
+              console.error('Failed to parse SSE line', e);
             }
           }
         }
       }
+
+      // If stream ended without a "done" event, go back to landing with error
+      if (!receivedDone) {
+        throw new Error('Analysis did not complete — the connection ended unexpectedly. Please try again.');
+      }
     } catch (err: any) {
-      setError(err.message || "Failed to connect to the backend.");
+      showError(err.message ?? 'Failed to connect to the backend.');
       setCurrentScreen('landing');
-      setTimeout(() => setError(null), 5000);
     }
   };
 
   return (
     <div className="h-screen flex flex-col font-sans bg-[#05050A] text-primary-dark selection:bg-primary-brand/30 selection:text-primary-brand relative overflow-hidden">
-      
+
       {/* Toast Error */}
       {error && (
         <div className="absolute top-6 left-1/2 -translate-x-1/2 z-50 bg-[#FF5F56]/10 border border-[#FF5F56]/50 text-[#FF5F56] px-6 py-3 rounded-lg shadow-2xl flex items-center gap-3 backdrop-blur-md font-medium text-sm">
@@ -116,8 +140,6 @@ function App() {
               <span className="font-bold text-lg tracking-tight text-white">Repo-Up</span>
             )}
           </div>
-          
-
         </header>
       )}
 
@@ -126,19 +148,19 @@ function App() {
         {currentScreen === 'landing' && (
           <Landing onAnalyze={handleAnalyze} />
         )}
-        
+
         {currentScreen === 'progress' && (
           <Progress />
         )}
-        
+
         {currentScreen === 'graph-reveal' && (
           <div className="w-full max-w-5xl h-[70vh] min-h-[500px] p-8 flex flex-col items-center justify-center relative z-20">
             <h2 className="text-2xl font-bold text-white mb-6 animate-pulse">Mapping Codebase Architecture...</h2>
             {analysisData?.graph ? (
-              <FileGraph 
-                mode="streaming" 
-                nodes={analysisData.graph.nodes} 
-                edges={analysisData.graph.edges} 
+              <FileGraph
+                mode="streaming"
+                nodes={analysisData.graph.nodes}
+                edges={analysisData.graph.edges}
               />
             ) : (
               <div className="text-red-500">
@@ -148,18 +170,18 @@ function App() {
             )}
           </div>
         )}
-        
+
         {currentScreen === 'results' && (
-          <Results 
+          <Results
             data={analysisData}
             onReset={() => {
               setCurrentScreen('landing');
               setAnalysisData(null);
-            }} 
+            }}
           />
         )}
       </main>
-      
+
     </div>
   );
 }

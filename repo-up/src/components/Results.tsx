@@ -1,19 +1,37 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { 
-  Code2, Home, Network, AlertTriangle, Archive, Clock, 
-  Download, Moon, Sun, Lock, ChevronRight, File, ShieldAlert,
-  Activity, CheckCircle2, ShieldCheck, Database, LayoutDashboard, Zap
+import {
+  Code2, Network, AlertTriangle, Clock,
+  Download, Lock, ChevronRight, File, ShieldAlert,
+  Activity, CheckCircle2, ShieldCheck, Database, LayoutDashboard, Zap, Flame
 } from 'lucide-react';
 import { GraphView } from './GraphView';
 import { DependencyGraphBackground } from './DependencyGraphBackground';
+import { CodeViewer } from './CodeViewer';
 
 interface Finding {
   category: string;
   title: string;
   description: string;
-  severity: "High" | "Medium" | "Low";
+  severity: 'High' | 'Medium' | 'Low';
   file?: string;
+  line?: number;
+  rule_id?: string;
+  language?: string;
+  autofix_available?: boolean;
+  resolution?: string;
+  cwe?: string;
+}
+
+interface PatchData {
+  rule_id: string;
+  language: string;
+  file: string;
+  start_line: number;
+  old_text: string;
+  new_text: string;
+  diff: string;
+  verification_status: string;
 }
 
 interface Rubric {
@@ -28,37 +46,55 @@ interface Rubric {
     testability: number;
   };
   metric_ratings: {
-    cof: "good" | "regular" | "bad";
-    afferent_couplings: "good" | "regular" | "bad";
-    public_fields: "good" | "regular" | "bad";
-    public_methods: "good" | "regular" | "bad";
-    dit: "good" | "regular" | "bad";
-    lcom: "good" | "regular" | "bad";
+    cof: 'good' | 'regular' | 'bad';
+    afferent_couplings: 'good' | 'regular' | 'bad';
+    public_fields: 'good' | 'regular' | 'bad';
+    public_methods: 'good' | 'regular' | 'bad';
+    dit: 'good' | 'regular' | 'bad';
+    lcom: 'good' | 'regular' | 'bad';
   };
 }
 
+interface AnalysisResult {
+  language?: string | string[];
+  framework?: string | string[];
+  files?: number;
+  score?: number;
+  issues?: Finding[];
+  tree?: string[];
+  rubric?: Rubric;
+  graph?: { nodes: { id: string; label: string }[]; edges: { source: string; target: string }[] };
+  session_id?: string;
+}
+
 interface ResultsProps {
-  data: any;
+  data: AnalysisResult | null;
   onReset: () => void;
 }
 
 export const Results: React.FC<ResultsProps> = ({ data, onReset }) => {
   const [showGraph, setShowGraph] = useState(false);
-  const [filterCategory, setFilterCategory] = useState<string>("All");
+  const [filterCategory, setFilterCategory] = useState<string>('All');
+  const [viewingFinding, setViewingFinding] = useState<Finding | null>(null);
+  const [fixFinding, setFixFinding] = useState<Finding | null>(null);
+  const [patchData, setPatchData] = useState<PatchData | null>(null);
+  const [patchLoading, setPatchLoading] = useState(false);
+  const [patchError, setPatchError] = useState<string | null>(null);
 
-  const d = data || {};
+  const d = data ?? {};
   const rubric: Rubric | undefined = d.rubric;
-  
+
   const score = rubric?.final_score ?? (d.score ?? 0);
   const structuralScore = rubric?.structural_score ?? 0;
   const metricsScore = rubric?.metrics_score ?? 0;
   const securityScore = rubric?.security_score ?? 100;
-  
-  const language = d.language || 'Unknown';
-  const framework = d.framework || 'Unknown';
-  const filesCount = d.files || 0;
-  const issues: Finding[] = d.issues || [];
-  const tree = d.tree || [];
+
+  const language = d.language ?? 'Unknown';
+  const framework = d.framework ?? 'Unknown';
+  const filesCount = d.files ?? 0;
+  const issues: Finding[] = d.issues ?? [];
+  const tree: string[] = d.tree ?? [];
+  const sessionId: string = (d as any).session_id ?? '';
 
   const handleDownloadReport = () => {
     const report = {
@@ -66,13 +102,13 @@ export const Results: React.FC<ResultsProps> = ({ data, onReset }) => {
       language,
       framework,
       score,
-      issues
+      issues,
     };
     const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'code-polish-report.json';
+    a.download = 'repo-up-report.json';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -85,21 +121,21 @@ export const Results: React.FC<ResultsProps> = ({ data, onReset }) => {
     if (el) el.scrollIntoView({ behavior: 'smooth' });
   };
 
-  const getScoreColor = (val: number) => {
-    if (val >= 80) return 'text-[#10B981]'; // Soft green-teal
-    if (val >= 50) return 'text-[#F59E0B]'; // Amber
-    return 'text-[#EF4444]'; // Red
+  const getScoreColor = (val: number): string => {
+    if (val >= 80) return 'text-[#10B981]';
+    if (val >= 50) return 'text-[#F59E0B]';
+    return 'text-[#EF4444]';
   };
 
-  const getSeverityStyle = (sev: string) => {
+  const getSeverityStyle = (sev: string): string => {
     switch (sev?.toLowerCase()) {
       case 'high': return 'bg-[#EF4444]/20 text-[#EF4444] border-[#EF4444]/30';
       case 'medium': return 'bg-[#F59E0B]/20 text-[#F59E0B] border-[#F59E0B]/30';
-      default: return 'bg-[#3B82F6]/20 text-[#3B82F6] border-[#3B82F6]/30'; // Blue for Low/Style
+      default: return 'bg-[#3B82F6]/20 text-[#3B82F6] border-[#3B82F6]/30';
     }
   };
 
-  const getRatingStyle = (rating: string) => {
+  const getRatingStyle = (rating: string): string => {
     switch (rating) {
       case 'good': return 'bg-[#059669]/20 text-[#34D399] border-[#34D399]/30';
       case 'regular': return 'bg-[#D97706]/20 text-[#FBBF24] border-[#FBBF24]/30';
@@ -109,31 +145,41 @@ export const Results: React.FC<ResultsProps> = ({ data, onReset }) => {
   };
 
   const getCategoryIcon = (cat: string) => {
-    switch(cat) {
+    switch (cat) {
       case 'Structural': return <Network size={16} className="text-[#6D5EF0]" />;
       case 'Metrics': return <Activity size={16} className="text-[#6D5EF0]" />;
       case 'Security': return <ShieldAlert size={16} className="text-[#EF4444]" />;
+      case 'Code Smell': return <Flame size={16} className="text-[#F59E0B]" />;
       default: return <AlertTriangle size={16} className="text-[#F59E0B]" />;
     }
   };
 
   const filteredIssues = issues
-    .filter(i => filterCategory === "All" || i.category === filterCategory)
+    .filter(i => filterCategory === 'All' || i.category === filterCategory)
     .sort((a, b) => {
-      const rank: Record<string, number> = { "High": 3, "Medium": 2, "Low": 1 };
+      const rank: Record<string, number> = { High: 3, Medium: 2, Low: 1 };
       return (rank[b.severity] || 0) - (rank[a.severity] || 0);
     });
 
-  const maskSecret = (desc: string) => {
-    // Basic mask for UI display if needed, but the backend description should ideally not contain the raw secret anyway.
-    return desc.replace(/([A-Za-z0-9_]{4})[A-Za-z0-9_]{8,}([A-Za-z0-9_]{4})/g, '$1••••••••$2');
-  };
+  const maskSecret = (desc: string): string =>
+    desc.replace(/([A-Za-z0-9_]{4})[A-Za-z0-9_]{8,}([A-Za-z0-9_]{4})/g, '$1••••••••$2');
 
   const displayScore = Math.round(score);
 
+  /** Issues for the currently-viewed file (for CodeViewer markers). */
+  const viewingFileIssues: Finding[] = viewingFinding?.file
+    ? issues.filter(i => i.file && i.file.replace(/\\/g, '/') === viewingFinding.file!.replace(/\\/g, '/'))
+    : [];
+
+  /** Score label — calm, non-judgmental per Design.md. */
+  const scoreLabel =
+    score >= 85 ? 'Production Ready'
+    : score >= 60 ? 'Needs Some Attention'
+    : 'Review Recommended';
+
   return (
     <div className="flex h-full w-full bg-[#05050A] text-white overflow-hidden font-sans relative">
-      {/* Background Texture - SVG dependency graph from landing page, masked */}
+      {/* Background Texture */}
       <div className="absolute inset-0 z-0 pointer-events-none opacity-[0.08]" style={{ maskImage: 'radial-gradient(ellipse at center, black, transparent 80%)', WebkitMaskImage: 'radial-gradient(ellipse at center, black, transparent 80%)' }}>
         <DependencyGraphBackground />
       </div>
@@ -169,7 +215,9 @@ export const Results: React.FC<ResultsProps> = ({ data, onReset }) => {
           <div className="text-[10px] font-bold text-gray-500 tracking-wider mb-3 uppercase">Session Details</div>
           <div className="flex items-center gap-2 mb-3">
             <span className="font-medium text-sm text-gray-300">Target</span>
-            <span className="bg-[#6D5EF0]/20 border border-[#6D5EF0]/30 text-[#8B5CF6] text-[10px] px-1.5 py-0.5 rounded">{language}</span>
+            <span className="bg-[#6D5EF0]/20 border border-[#6D5EF0]/30 text-[#8B5CF6] text-[10px] px-1.5 py-0.5 rounded">
+              {Array.isArray(language) ? language.join(', ') : language}
+            </span>
           </div>
           <div className="space-y-2 text-xs text-gray-400">
             <div className="flex items-center gap-2"><File size={12} /> {filesCount} Files Parsed</div>
@@ -190,20 +238,20 @@ export const Results: React.FC<ResultsProps> = ({ data, onReset }) => {
 
       {/* MAIN CONTENT */}
       <div className="flex-1 flex flex-col min-w-0 relative z-10 h-full">
-        
+
         {/* Header */}
         <header className="h-16 border-b border-white/5 bg-[#05050A]/70 backdrop-blur-md flex items-center justify-between px-8 shrink-0">
           <div className="flex items-center gap-2 text-sm text-gray-400">
             <span>Repo-Up</span> <ChevronRight size={14} /> <span className="text-white font-medium">Dashboard</span>
           </div>
           <div className="flex items-center gap-4">
-            <button 
+            <button
               onClick={() => setShowGraph(!showGraph)}
               className="flex items-center gap-2 text-xs font-medium transition-all px-4 py-2 border rounded-lg bg-gradient-to-r from-[#6D5EF0] to-[#3B82F6] text-white border-transparent hover:shadow-[0_0_15px_rgba(109,94,240,0.4)]"
             >
               <Network size={14} /> Full Graph Explorer
             </button>
-            <button 
+            <button
               onClick={handleDownloadReport}
               className="flex items-center gap-2 text-xs font-medium text-gray-300 hover:text-white transition-colors px-3 py-2 border border-white/10 rounded-lg hover:border-white/30 bg-white/5"
             >
@@ -216,22 +264,35 @@ export const Results: React.FC<ResultsProps> = ({ data, onReset }) => {
         </header>
 
         {/* Scrollable Dashboard */}
-        <div className="flex-1 overflow-y-auto p-6 md:p-8 space-y-8 scroll-smooth">
-          
+        <div className="flex-1 overflow-y-auto p-6 md:p-8 space-y-8 scroll-smooth relative">
+
           <AnimatePresence>
             {showGraph && d.graph && (
-              <GraphView 
-                nodes={d.graph.nodes} 
+              <GraphView
+                nodes={d.graph.nodes}
                 edges={d.graph.edges}
                 issues={issues}
-                sessionId={d.session_id}
-                onClose={() => setShowGraph(false)} 
+                sessionId={sessionId}
+                onClose={() => setShowGraph(false)}
               />
             )}
           </AnimatePresence>
-          
+
+          {/* CodeViewer overlay */}
+          <AnimatePresence>
+            {viewingFinding && viewingFinding.file && sessionId && (
+              <CodeViewer
+                sessionId={sessionId}
+                filePath={viewingFinding.file}
+                line={viewingFinding.line ?? 1}
+                fileIssues={viewingFileIssues}
+                onClose={() => setViewingFinding(null)}
+              />
+            )}
+          </AnimatePresence>
+
           {/* TOP SUMMARY BAR */}
-          <motion.div 
+          <motion.div
             id="overview"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -249,7 +310,7 @@ export const Results: React.FC<ResultsProps> = ({ data, onReset }) => {
                     </linearGradient>
                   </defs>
                   <circle cx="50" cy="50" r="45" fill="none" stroke="rgba(255,255,255,0.05)" strokeWidth="8" />
-                  <circle cx="50" cy="50" r="45" fill="none" stroke="url(#scoreGrad)" strokeWidth="8" strokeDasharray="282.7" strokeDashoffset={282.7 - (282.7 * score) / 100} className="drop-shadow-[0_0_10px_rgba(109,94,240,0.6)] transition-all duration-1000" />
+                  <circle cx="50" cy="50" r="45" fill="none" stroke="url(#scoreGrad)" strokeWidth="8" strokeDasharray="282.7" strokeDashoffset={282.7 - (282.7 * Math.min(score, 100)) / 100} className="drop-shadow-[0_0_10px_rgba(109,94,240,0.6)] transition-all duration-1000" />
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
                   <span className="text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400">{displayScore}</span>
@@ -258,13 +319,10 @@ export const Results: React.FC<ResultsProps> = ({ data, onReset }) => {
 
               {/* Info */}
               <div className="flex-1">
-                <div className="text-[10px] font-bold text-[#6D5EF0] tracking-wider mb-2 uppercase flex items-center gap-2"><Activity size={12}/> Overall Readiness</div>
-                <h2 className="text-3xl font-bold mb-2 text-white">
-                  {score >= 85 ? 'Production Ready' : score >= 60 ? 'Needs Refactoring' : 'Critical Issues'}
-                </h2>
-                
+                <div className="text-[10px] font-bold text-[#6D5EF0] tracking-wider mb-2 uppercase flex items-center gap-2"><Activity size={12} /> Overall Readiness</div>
+                <h2 className="text-3xl font-bold mb-2 text-white">{scoreLabel}</h2>
                 <p className="text-sm text-gray-400 mb-6 max-w-md leading-relaxed">
-                  Your codebase structure and metrics have been analyzed. Review the findings below to address architectural debt and security risks.
+                  Your codebase structure and metrics have been analysed. Review the findings below to address architectural debt and security concerns.
                 </p>
 
                 {/* Sub-scores */}
@@ -290,23 +348,23 @@ export const Results: React.FC<ResultsProps> = ({ data, onReset }) => {
             {/* TIMELINE */}
             <div className="col-span-1 bg-[#0B0C10]/60 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-xl flex flex-col">
               <div className="flex items-center gap-2 mb-6">
-                <Clock size={16} className="text-[#3B82F6]" /> 
+                <Clock size={16} className="text-[#3B82F6]" />
                 <h3 className="font-bold text-sm text-white">Analysis Pipeline</h3>
               </div>
               <div className="flex-1 flex flex-col justify-center space-y-4 relative">
                 <div className="absolute left-2.5 top-2 bottom-2 w-[1px] bg-white/10 -z-10" />
                 {[
-                  { label: 'Parse AST', status: 'done' },
-                  { label: 'Extract Entities', status: 'done' },
-                  { label: 'Build Dependency Graph', status: 'done' },
-                  { label: 'Run Security Rules', status: 'done' },
-                  { label: 'Compute ISO Metrics', status: 'done' },
-                ].map((step, i) => (
+                  'Parse AST',
+                  'Extract Entities',
+                  'Build Dependency Graph',
+                  'Run Security Rules',
+                  'Compute ISO Metrics',
+                ].map((label, i) => (
                   <div key={i} className="flex items-center gap-4">
                     <div className="w-5 h-5 rounded-full bg-gradient-to-r from-[#6D5EF0] to-[#3B82F6] flex items-center justify-center shrink-0">
                       <CheckCircle2 size={12} className="text-white" />
                     </div>
-                    <span className="text-sm text-gray-300 font-medium">{step.label}</span>
+                    <span className="text-sm text-gray-300 font-medium">{label}</span>
                   </div>
                 ))}
               </div>
@@ -315,7 +373,7 @@ export const Results: React.FC<ResultsProps> = ({ data, onReset }) => {
 
           {/* ISO 25010 BREAKDOWN */}
           {rubric && (
-            <motion.div 
+            <motion.div
               id="iso"
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -323,7 +381,7 @@ export const Results: React.FC<ResultsProps> = ({ data, onReset }) => {
             >
               <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2"><Database size={18} className="text-[#6D5EF0]" /> ISO/IEC 25010 Code Quality</h3>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {['Modularity', 'Analysability', 'Modifiability', 'Testability'].map((cat, idx) => {
+                {(['Modularity', 'Analysability', 'Modifiability', 'Testability'] as const).map((cat, idx) => {
                   const val = rubric.category_breakdown[cat.toLowerCase() as keyof typeof rubric.category_breakdown];
                   return (
                     <div key={idx} className="bg-[#0B0C10]/60 backdrop-blur-xl border border-white/10 rounded-xl p-5 relative overflow-hidden group hover:border-[#6D5EF0]/40 transition-colors">
@@ -335,7 +393,7 @@ export const Results: React.FC<ResultsProps> = ({ data, onReset }) => {
                         {val} <span className="text-xs font-medium text-gray-500">/100</span>
                       </div>
                       <div className="h-1.5 w-full bg-black/50 rounded-full overflow-hidden">
-                         <div className={`h-full bg-gradient-to-r from-[#6D5EF0] to-[#3B82F6] rounded-full`} style={{ width: `${val}%` }} />
+                        <div className="h-full bg-gradient-to-r from-[#6D5EF0] to-[#3B82F6] rounded-full" style={{ width: `${val}%` }} />
                       </div>
                     </div>
                   );
@@ -346,7 +404,7 @@ export const Results: React.FC<ResultsProps> = ({ data, onReset }) => {
 
           {/* METRIC RATINGS */}
           {rubric && (
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.15 }}
@@ -354,23 +412,23 @@ export const Results: React.FC<ResultsProps> = ({ data, onReset }) => {
             >
               <div className="p-5 border-b border-white/10 flex items-center justify-between bg-black/20">
                 <h3 className="font-bold flex items-center gap-2 text-white">
-                  <Activity size={16} className="text-[#3B82F6]" /> 
+                  <Activity size={16} className="text-[#3B82F6]" />
                   Codebase Metrics
                 </h3>
               </div>
               <div className="p-5 overflow-x-auto">
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   {[
-                    { key: 'cof', label: 'Coupling Factor (COF)', tip: 'Thresholds: Good < 0.1, Regular 0.1-0.2, Bad > 0.2' },
-                    { key: 'afferent_couplings', label: 'Afferent Couplings', tip: 'Thresholds: Good < 5, Regular 5-10, Bad > 10' },
-                    { key: 'public_fields', label: 'Public Fields', tip: 'Thresholds: Good 0, Regular 1-3, Bad > 3' },
-                    { key: 'public_methods', label: 'Weighted Methods/Class', tip: 'Thresholds: Good < 7, Regular 7-15, Bad > 15' },
-                    { key: 'dit', label: 'Depth of Inheritance', tip: 'Thresholds: Good < 2, Regular = 2, Bad > 2' },
-                    { key: 'lcom', label: 'Lack of Cohesion (LCOM)', tip: 'Thresholds: Good < 5, Regular 5-10, Bad > 10' },
+                    { key: 'cof', label: 'Coupling Factor (COF)', tip: 'System-level connectivity ratio' },
+                    { key: 'afferent_couplings', label: 'Afferent Couplings (avg)', tip: 'Average in-degree per file' },
+                    { key: 'public_fields', label: 'Public Fields (avg)', tip: 'Average public fields per class' },
+                    { key: 'public_methods', label: 'Public Methods / WMC proxy (avg)', tip: 'Average public method count per class' },
+                    { key: 'dit', label: 'Inheritance Depth / DIT (avg)', tip: 'Average depth of inheritance tree' },
+                    { key: 'lcom', label: 'Cohesion / LCOM proxy (avg)', tip: 'Average LCOM proxy per class' },
                   ].map((m) => {
-                    const rating = rubric.metric_ratings[m.key as keyof typeof rubric.metric_ratings] || 'good';
+                    const rating = rubric.metric_ratings[m.key as keyof typeof rubric.metric_ratings] ?? 'good';
                     return (
-                      <div key={m.key} className="bg-black/30 border border-white/5 p-4 rounded-xl flex items-center justify-between hover:bg-white/5 transition-colors">
+                      <div key={m.key} title={m.tip} className="bg-black/30 border border-white/5 p-4 rounded-xl flex items-center justify-between hover:bg-white/5 transition-colors">
                         <span className="text-sm font-semibold text-gray-300">{m.label}</span>
                         <span className={`text-[10px] uppercase tracking-wider font-bold px-2.5 py-1 rounded-full border ${getRatingStyle(rating)}`}>
                           {rating}
@@ -384,7 +442,7 @@ export const Results: React.FC<ResultsProps> = ({ data, onReset }) => {
           )}
 
           {/* FINDINGS LIST */}
-          <motion.div 
+          <motion.div
             id="findings"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -395,14 +453,14 @@ export const Results: React.FC<ResultsProps> = ({ data, onReset }) => {
             <div className="flex-1 bg-[#0B0C10]/60 backdrop-blur-xl border border-white/10 rounded-2xl flex flex-col shadow-xl overflow-hidden min-h-[500px]">
               <div className="p-5 border-b border-white/10 flex items-center justify-between bg-black/20">
                 <h3 className="font-bold flex items-center gap-2 text-white">
-                  <ShieldAlert size={16} className="text-[#F59E0B]" /> 
+                  <ShieldAlert size={16} className="text-[#F59E0B]" />
                   Analysis Findings
                 </h3>
-                
+
                 {/* Filters */}
                 <div className="flex gap-2">
-                  {["All", "Structural", "Metrics", "Security"].map(cat => (
-                    <button 
+                  {['All', 'Structural', 'Metrics', 'Security', 'Code Smell'].map(cat => (
+                    <button
                       key={cat}
                       onClick={() => setFilterCategory(cat)}
                       className={`text-xs px-3 py-1.5 rounded-full font-medium transition-all ${filterCategory === cat ? 'bg-gradient-to-r from-[#6D5EF0] to-[#3B82F6] text-white shadow-md border border-transparent' : 'bg-white/5 border border-white/10 text-gray-400 hover:text-white hover:bg-white/10'}`}
@@ -418,58 +476,154 @@ export const Results: React.FC<ResultsProps> = ({ data, onReset }) => {
                   {filteredIssues.length === 0 && (
                     <div className="text-center text-gray-500 py-20 text-sm flex flex-col items-center">
                       <ShieldCheck size={48} className="text-[#10B981] mb-4 opacity-50" />
-                      No findings detected for this category!
+                      No findings in this category.
                     </div>
                   )}
-                  {filteredIssues.map((issue, i) => (
-                    <li key={i} className="flex flex-col p-4 rounded-xl bg-black/40 border border-white/5 hover:border-white/10 transition-colors">
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="flex items-center gap-3">
-                          {getCategoryIcon(issue.category)}
-                          <span className="font-bold text-sm text-gray-100">{issue.title}</span>
-                        </div>
-                        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${getSeverityStyle(issue.severity)}`}>
-                          {issue.severity || 'Medium'}
-                        </span>
-                      </div>
-                      
-                      <div className="text-sm text-gray-400 pl-7 leading-relaxed">
-                        {maskSecret(issue.description || '')}
-                      </div>
-                      
-                      {issue.file && (
-                        <div className="mt-3 pl-7 flex gap-2">
-                          <span className="px-2.5 py-1 rounded-md bg-white/5 border border-white/10 text-xs text-gray-400 font-mono flex items-center gap-1.5">
-                            <File size={10} className="text-[#6D5EF0]"/> {issue.file}
+                  {filteredIssues.map((issue, i) => {
+                    const isClickable = Boolean(issue.file);
+                    return (
+                      <li
+                        key={i}
+                        onClick={() => isClickable ? setViewingFinding(issue) : undefined}
+                        className={`flex flex-col p-4 rounded-xl bg-black/40 border border-white/5 transition-colors ${isClickable ? 'cursor-pointer hover:border-[#6D5EF0]/50 hover:bg-white/5' : 'cursor-default'}`}
+                      >
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex items-center gap-3">
+                            {getCategoryIcon(issue.category)}
+                            <span className="font-bold text-sm text-gray-100">{issue.title}</span>
+                          </div>
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${getSeverityStyle(issue.severity)}`}>
+                            {issue.severity ?? 'Medium'}
                           </span>
                         </div>
-                      )}
-                    </li>
-                  ))}
+
+                        <div className="text-sm text-gray-400 pl-7 leading-relaxed">
+                          {maskSecret(issue.description ?? '')}
+                        </div>
+
+                        {issue.file && (
+                          <div className="mt-3 pl-7 flex gap-2 items-center flex-wrap">
+                            <span className="px-2.5 py-1 rounded-md bg-white/5 border border-white/10 text-xs text-gray-400 font-mono flex items-center gap-1.5">
+                              <File size={10} className="text-[#6D5EF0]" /> {issue.file}
+                            </span>
+                            {issue.line && (
+                              <span className="text-[10px] text-gray-500 font-mono">line {issue.line}</span>
+                            )}
+                            <span className="text-[10px] text-[#6D5EF0] ml-auto font-medium">View source →</span>
+                            {issue.autofix_available && (
+                              <button
+                                id={`fix-btn-${i}`}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setPatchData(null);
+                                  setPatchError(null);
+                                  setFixFinding(issue);
+                                  setPatchLoading(true);
+                                  fetch('/repair', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ session_id: sessionId, finding: issue }),
+                                  })
+                                    .then(r => r.json())
+                                    .then(data => {
+                                      if (data.patch) setPatchData(data.patch);
+                                      else setPatchError(data.validation_error || data.explanation || 'No patch available.');
+                                    })
+                                    .catch(() => setPatchError('Request failed.'))
+                                    .finally(() => setPatchLoading(false));
+                                }}
+                                className="flex items-center gap-1.5 text-[10px] font-bold px-2.5 py-1 rounded-full bg-[#10B981]/10 border border-[#10B981]/30 text-[#10B981] hover:bg-[#10B981]/20 transition-colors"
+                              >
+                                <Zap size={10} /> Suggested Fix
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </li>
+                    );
+                  })}
                 </ul>
               </div>
             </div>
+
+            {/* Phase 5: Suggested Fix Modal */}
+            <AnimatePresence>
+              {fixFinding && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
+                  onClick={() => { setFixFinding(null); setPatchData(null); setPatchError(null); }}
+                >
+                  <motion.div
+                    initial={{ scale: 0.95, y: 20 }}
+                    animate={{ scale: 1, y: 0 }}
+                    exit={{ scale: 0.95, y: 20 }}
+                    className="bg-[#0B0C10] border border-white/10 rounded-2xl shadow-2xl max-w-2xl w-full max-h-[80vh] flex flex-col"
+                    onClick={e => e.stopPropagation()}
+                  >
+                    <div className="p-5 border-b border-white/10 flex items-center justify-between">
+                      <h3 className="font-bold text-white flex items-center gap-2">
+                        <Zap size={16} className="text-[#10B981]" /> Suggested Fix
+                        <span className="text-xs font-normal text-gray-400 ml-2">— not verified, review before applying</span>
+                      </h3>
+                      <button onClick={() => { setFixFinding(null); setPatchData(null); setPatchError(null); }} className="text-gray-500 hover:text-white transition-colors text-lg leading-none">&times;</button>
+                    </div>
+                    <div className="p-5 flex-1 overflow-y-auto space-y-4">
+                      <div className="text-sm text-gray-300 font-medium">{fixFinding.title}</div>
+                      {patchLoading && <div className="text-sm text-gray-400 animate-pulse">Generating patch…</div>}
+                      {patchError && !patchLoading && (
+                        <div className="text-sm text-amber-400 bg-amber-400/10 border border-amber-400/20 rounded-lg p-3">{patchError}</div>
+                      )}
+                      {patchData && !patchLoading && (
+                        <>
+                          <div className="text-xs text-gray-500 font-mono">{patchData.file} — line {patchData.start_line}</div>
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <div>
+                              <div className="text-[10px] uppercase tracking-wider font-bold text-red-400 mb-1">Before</div>
+                              <pre className="text-xs bg-red-900/10 border border-red-500/20 rounded-lg p-3 overflow-x-auto text-red-300 whitespace-pre-wrap">{patchData.old_text}</pre>
+                            </div>
+                            <div>
+                              <div className="text-[10px] uppercase tracking-wider font-bold text-green-400 mb-1">After</div>
+                              <pre className="text-xs bg-green-900/10 border border-green-500/20 rounded-lg p-3 overflow-x-auto text-green-300 whitespace-pre-wrap">{patchData.new_text}</pre>
+                            </div>
+                          </div>
+                          <div>
+                            <div className="text-[10px] uppercase tracking-wider font-bold text-gray-500 mb-1">Unified Diff</div>
+                            <pre className="text-xs bg-black/40 border border-white/5 rounded-lg p-3 overflow-x-auto text-gray-300 whitespace-pre-wrap font-mono">{patchData.diff}</pre>
+                          </div>
+                          <div className="flex items-center gap-2 text-[10px] text-amber-400 bg-amber-400/5 border border-amber-400/10 rounded-lg p-2">
+                            <Lock size={10} /> verification_status: {patchData.verification_status} — patch is a candidate only. Do not apply without review.
+                          </div>
+                        </>
+                      )}
+                    </div>
+                  </motion.div>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             {/* Architecture Preview */}
             <div id="architecture" className="w-full xl:w-80 bg-[#0B0C10]/60 backdrop-blur-xl border border-white/10 rounded-2xl flex flex-col shadow-xl overflow-hidden h-[500px] shrink-0">
               <div className="p-5 border-b border-white/10 flex items-center justify-between bg-black/20">
                 <h3 className="font-bold flex items-center gap-2 text-white">
-                  <Network size={16} className="text-[#6D5EF0]" /> 
+                  <Network size={16} className="text-[#6D5EF0]" />
                   Architecture Preview
                 </h3>
               </div>
-              
+
               {/* Static Graph Preview Portal */}
-              <div 
+              <div
                 className="h-48 bg-[#05050A] border-b border-white/5 relative overflow-hidden group cursor-pointer"
                 onClick={() => setShowGraph(true)}
               >
                 <div className="absolute inset-0 z-0 opacity-50 blur-[1px]">
-                   <DependencyGraphBackground />
+                  <DependencyGraphBackground />
                 </div>
                 <div className="absolute inset-0 bg-black/20 group-hover:bg-black/10 transition-all z-10 flex items-center justify-center">
                   <span className="bg-black/60 text-white backdrop-blur-md px-3 py-1.5 rounded-lg text-xs font-semibold border border-white/10 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2">
-                    <Network size={14}/> Click to Expand Full Graph
+                    <Network size={14} /> Expand Full Graph
                   </span>
                 </div>
               </div>
@@ -488,7 +642,7 @@ export const Results: React.FC<ResultsProps> = ({ data, onReset }) => {
               </div>
             </div>
           </motion.div>
-          
+
         </div>
       </div>
     </div>

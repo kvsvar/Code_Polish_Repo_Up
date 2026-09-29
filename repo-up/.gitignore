@@ -12,6 +12,11 @@ dist
 dist-ssr
 *.local
 
+# Backend session temp dirs (never commit session contents, keep .gitkeep)
+backend/temp/*
+!backend/temp/.gitkeep
+backend/temp_validation/
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
