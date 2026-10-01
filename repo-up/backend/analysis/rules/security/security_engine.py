@@ -91,7 +91,7 @@ def _make_finding(rule_id: str, title: str, description: str, severity: str,
         language=language,
         file=file or None,
         line=line or None,
-        autofix_available=False,
+        autofix_available=spec.autofix_available if spec else False,
     )
     return f.to_dict()
 

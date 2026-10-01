@@ -63,6 +63,7 @@ class Finding:
     resolution: Optional[str] = None
     autofix_available: bool = False
     verified: bool = False
+    source: str = "Native"
 
     def to_dict(self) -> dict:
         """Serialise to the wire shape currently expected by Results.tsx.
@@ -101,6 +102,8 @@ class Finding:
             d["autofix_available"] = True
         if self.verified:
             d["verified"] = True
+        if self.source:
+            d["source"] = self.source
         return d
 
     @staticmethod
@@ -121,4 +124,5 @@ class Finding:
             resolution=d.get("resolution"),
             autofix_available=d.get("autofix_available", False),
             verified=d.get("verified", False),
+            source=d.get("source", "Native"),
         )

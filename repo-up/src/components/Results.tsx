@@ -3,12 +3,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Code2, Network, AlertTriangle, Clock,
   Download, Lock, ChevronRight, File, ShieldAlert,
-  Activity, CheckCircle2, ShieldCheck, Database, LayoutDashboard, Zap, Flame
+  Activity, CheckCircle2, ShieldCheck, Database, LayoutDashboard, Zap, Flame, XCircle, AlertCircle
 } from 'lucide-react';
 import { GraphView } from './GraphView';
 import { DependencyGraphBackground } from './DependencyGraphBackground';
 import { CodeViewer } from './CodeViewer';
-
+import { API_BASE } from '../App';
 interface Finding {
   category: string;
   title: string;
@@ -21,6 +21,7 @@ interface Finding {
   autofix_available?: boolean;
   resolution?: string;
   cwe?: string;
+  source?: string;
 }
 
 interface PatchData {
@@ -70,14 +71,16 @@ interface AnalysisResult {
 interface ResultsProps {
   data: AnalysisResult | null;
   onReset: () => void;
+  onApplyAll: (findings: Finding[]) => void;
 }
 
-export const Results: React.FC<ResultsProps> = ({ data, onReset }) => {
+export const Results: React.FC<ResultsProps> = ({ data, onReset, onApplyAll }) => {
   const [showGraph, setShowGraph] = useState(false);
   const [filterCategory, setFilterCategory] = useState<string>('All');
   const [viewingFinding, setViewingFinding] = useState<Finding | null>(null);
   const [fixFinding, setFixFinding] = useState<Finding | null>(null);
   const [patchData, setPatchData] = useState<PatchData | null>(null);
+  const [patchExplanation, setPatchExplanation] = useState<string | null>(null);
   const [patchLoading, setPatchLoading] = useState(false);
   const [patchError, setPatchError] = useState<string | null>(null);
 
@@ -230,8 +233,8 @@ export const Results: React.FC<ResultsProps> = ({ data, onReset }) => {
           <div className="absolute inset-0 bg-[#6D5EF0]/5 group-hover:bg-[#6D5EF0]/10 transition-colors" />
           <h4 className="font-bold text-sm mb-2 text-white relative z-10 flex items-center justify-center gap-2"><Zap size={14} className="text-[#F59E0B]" /> Auto-Fix</h4>
           <p className="text-xs text-gray-400 mb-4 relative z-10">Deploy fixes to secure sandbox</p>
-          <button className="w-full py-2 bg-black/40 border border-white/10 rounded-lg text-xs font-medium text-gray-400 flex items-center justify-center gap-2 cursor-not-allowed relative z-10">
-            <Lock size={12} /> Phase 4 Feature
+          <button onClick={() => onApplyAll(issues)} className="w-full py-2 bg-gradient-to-r from-[#6D5EF0] to-[#3B82F6] hover:shadow-[0_0_15px_rgba(109,94,240,0.5)] border border-transparent rounded-lg text-xs font-bold text-white flex items-center justify-center gap-2 relative z-10 transition-all cursor-pointer">
+            <Zap size={12} /> Apply All Changes
           </button>
         </div>
       </div>
@@ -359,6 +362,7 @@ export const Results: React.FC<ResultsProps> = ({ data, onReset }) => {
                   'Build Dependency Graph',
                   'Run Security Rules',
                   'Compute ISO Metrics',
+                  'External Security Assessment',
                 ].map((label, i) => (
                   <div key={i} className="flex items-center gap-4">
                     <div className="w-5 h-5 rounded-full bg-gradient-to-r from-[#6D5EF0] to-[#3B82F6] flex items-center justify-center shrink-0">
@@ -492,9 +496,16 @@ export const Results: React.FC<ResultsProps> = ({ data, onReset }) => {
                             {getCategoryIcon(issue.category)}
                             <span className="font-bold text-sm text-gray-100">{issue.title}</span>
                           </div>
-                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${getSeverityStyle(issue.severity)}`}>
-                            {issue.severity ?? 'Medium'}
-                          </span>
+                          <div className="flex items-center gap-2">
+                            {issue.source && issue.source.includes('CodeQL') && (
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full border bg-purple-500/20 text-purple-400 border-purple-500/30 flex items-center gap-1">
+                                <Database size={10} /> {issue.source}
+                              </span>
+                            )}
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${getSeverityStyle(issue.severity)}`}>
+                              {issue.severity ?? 'Medium'}
+                            </span>
+                          </div>
                         </div>
 
                         <div className="text-sm text-gray-400 pl-7 leading-relaxed">
@@ -517,17 +528,22 @@ export const Results: React.FC<ResultsProps> = ({ data, onReset }) => {
                                   e.stopPropagation();
                                   setPatchData(null);
                                   setPatchError(null);
+                                  setPatchExplanation(null);
                                   setFixFinding(issue);
                                   setPatchLoading(true);
-                                  fetch('/repair', {
+                                  fetch(`${API_BASE}/repair`, {
                                     method: 'POST',
                                     headers: { 'Content-Type': 'application/json' },
                                     body: JSON.stringify({ session_id: sessionId, finding: issue }),
                                   })
                                     .then(r => r.json())
                                     .then(data => {
+                                      if (data.explanation) setPatchExplanation(data.explanation);
                                       if (data.patch) setPatchData(data.patch);
-                                      else setPatchError(data.validation_error || data.explanation || 'No patch available.');
+                                      else if (data.validation_error) setPatchError(data.validation_error);
+                                      else if (data.detail && data.detail.error) setPatchError(data.detail.error.message);
+                                      else if (data.error && data.error.message) setPatchError(data.error.message);
+                                      else if (!data.explanation) setPatchError('No patch available.');
                                     })
                                     .catch(() => setPatchError('Request failed.'))
                                     .finally(() => setPatchLoading(false));
@@ -554,7 +570,7 @@ export const Results: React.FC<ResultsProps> = ({ data, onReset }) => {
                   animate={{ opacity: 1 }}
                   exit={{ opacity: 0 }}
                   className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4"
-                  onClick={() => { setFixFinding(null); setPatchData(null); setPatchError(null); }}
+                  onClick={() => { setFixFinding(null); setPatchData(null); setPatchError(null); setPatchExplanation(null); }}
                 >
                   <motion.div
                     initial={{ scale: 0.95, y: 20 }}
@@ -568,13 +584,18 @@ export const Results: React.FC<ResultsProps> = ({ data, onReset }) => {
                         <Zap size={16} className="text-[#10B981]" /> Suggested Fix
                         <span className="text-xs font-normal text-gray-400 ml-2">— not verified, review before applying</span>
                       </h3>
-                      <button onClick={() => { setFixFinding(null); setPatchData(null); setPatchError(null); }} className="text-gray-500 hover:text-white transition-colors text-lg leading-none">&times;</button>
+                      <button onClick={() => { setFixFinding(null); setPatchData(null); setPatchError(null); setPatchExplanation(null); }} className="text-gray-500 hover:text-white transition-colors text-lg leading-none">&times;</button>
                     </div>
                     <div className="p-5 flex-1 overflow-y-auto space-y-4">
                       <div className="text-sm text-gray-300 font-medium">{fixFinding.title}</div>
                       {patchLoading && <div className="text-sm text-gray-400 animate-pulse">Generating patch…</div>}
                       {patchError && !patchLoading && (
                         <div className="text-sm text-amber-400 bg-amber-400/10 border border-amber-400/20 rounded-lg p-3">{patchError}</div>
+                      )}
+                      {patchExplanation && !patchLoading && (
+                        <div className="text-sm text-gray-300 bg-white/5 border border-white/10 rounded-lg p-4">
+                          {patchExplanation.split('\n').map((line, i) => <p key={i} className="mb-2 last:mb-0">{line}</p>)}
+                        </div>
                       )}
                       {patchData && !patchLoading && (
                         <>
@@ -593,9 +614,46 @@ export const Results: React.FC<ResultsProps> = ({ data, onReset }) => {
                             <div className="text-[10px] uppercase tracking-wider font-bold text-gray-500 mb-1">Unified Diff</div>
                             <pre className="text-xs bg-black/40 border border-white/5 rounded-lg p-3 overflow-x-auto text-gray-300 whitespace-pre-wrap font-mono">{patchData.diff}</pre>
                           </div>
-                          <div className="flex items-center gap-2 text-[10px] text-amber-400 bg-amber-400/5 border border-amber-400/10 rounded-lg p-2">
-                            <Lock size={10} /> verification_status: {patchData.verification_status} — patch is a candidate only. Do not apply without review.
-                          </div>
+                          {patchData.verification_details ? (
+                            <div className="flex flex-col gap-2 text-[11px] text-gray-300 bg-black/40 border border-white/5 rounded-lg p-3">
+                              <div className="font-bold text-gray-400 uppercase tracking-wider mb-1 text-[10px]">Sandbox Verification Result</div>
+                              
+                              <div className="flex items-center gap-2">
+                                {patchData.verification_details.parse_result ? <CheckCircle2 size={12} className="text-[#10B981]" /> : <XCircle size={12} className="text-red-400" />}
+                                <span>Parse verification: {patchData.verification_details.parse_result ? "Passed" : "Failed"}</span>
+                              </div>
+                              
+                              {patchData.verification_details.static_result !== null && (
+                                <div className="flex items-center gap-2">
+                                  {patchData.verification_details.static_result ? <CheckCircle2 size={12} className="text-[#10B981]" /> : <XCircle size={12} className="text-red-400" />}
+                                  <span>Static verification: {patchData.verification_details.static_result ? "Passed" : "Failed"}</span>
+                                </div>
+                              )}
+
+                              {patchData.verification_details.security_result !== null && (
+                                <div className="flex items-center gap-2">
+                                  {patchData.verification_details.security_result ? <CheckCircle2 size={12} className="text-[#10B981]" /> : <XCircle size={12} className="text-red-400" />}
+                                  <span>Security verification: {patchData.verification_details.security_result ? "Passed" : "Failed"}</span>
+                                </div>
+                              )}
+                              
+                              <div className="flex items-center gap-2">
+                                {patchData.verification_details.test_result === true ? <CheckCircle2 size={12} className="text-[#10B981]" /> : 
+                                 patchData.verification_details.test_result === false ? <XCircle size={12} className="text-red-400" /> :
+                                 <AlertCircle size={12} className="text-amber-400" />}
+                                <span>Tests: {patchData.verification_details.test_result === true ? "Passed" : patchData.verification_details.test_result === false ? "Failed" : "Not available"}</span>
+                              </div>
+                              
+                              <div className={`mt-2 pt-2 border-t border-white/10 flex items-center gap-2 font-medium ${patchData.verification_details.status === 'PASS' ? 'text-[#10B981]' : patchData.verification_details.status === 'NOT_AVAILABLE' ? 'text-amber-400' : 'text-red-400'}`}>
+                                Overall status: {patchData.verification_details.status}
+                                {patchData.verification_details.message && <span className="text-gray-500 font-normal ml-1">— {patchData.verification_details.message}</span>}
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2 text-[10px] text-amber-400 bg-amber-400/5 border border-amber-400/10 rounded-lg p-2">
+                              <Lock size={10} /> verification_status: {patchData.verification_status} — patch is a candidate only. Do not apply without review.
+                            </div>
+                          )}
                         </>
                       )}
                     </div>

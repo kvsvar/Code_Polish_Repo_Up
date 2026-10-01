@@ -56,8 +56,14 @@ Thresholds from: Ferreira et al. (2012), *Journal of Systems and Software* 85(2)
 ### Auto-Fix Engine (Phase 5)
 - Rule-based resolution engine providing candidate patches for supported findings.
 - **Tier 1 (Deterministic Auto-Fix)**: Safely generates patches for `yaml.safe_load` and weak cryptographic hashes.
-- **Tier 2/3 (Suggested/Explanation)**: Provides actionable guidance for unsafe deserialization, dangerous exec, missing exception handling, and unsafe asserts.
+- **Tier 2/3 (Suggested/Explanation)**: Provides actionable guidance for unsafe deserialization, dangerous exec, missing exception handling, and unsafe asserts using LLM generation.
 - Strict 5-step patch validation: path escape protection, line bounds checking, exact old-text matching, non-empty result guard, and Tree-sitter parseability check.
+
+### Sandbox Verification (Phase 6)
+- **Isolated Testing Pipeline**: Creates an ephemeral sandbox directory to safely apply candidate patches.
+- **Validation**: Performs strict 4-step validation: AST parsing, static analysis regression checks, security regression checks, and unit testing.
+- **Rollback**: Automatically reverts the file state if any validation step fails.
+- **Dynamic Frontend**: Animated dashboard with Server-Sent Events (SSE) streaming real-time verification progress and an Optimistic Scoring Engine that dynamically recalculates ISO scores as fixes pass.
 
 ### Scoring (ISO/IEC 25010)
 ```
@@ -72,6 +78,7 @@ Sub-characteristics mapped: **Modularity**, **Analysability**, **Modifiability**
 - Findings filterable by category (Structural / Metrics / Security)
 - Full dependency graph explorer with node focus panel and "View Source Code" button
 - "Suggested Fix" UI rendering Unified Diffs and before/after comparisons for auto-fixable findings.
+- **Sandbox Verification Dashboard**: An SSE-powered UI queue tracking fix applications, animated code changes, and dynamic scoring increases.
 - JSON report export
 
 ### API
@@ -112,7 +119,11 @@ Error codes: `INVALID_FILE_TYPE`, `INVALID_ARCHIVE`, `ARCHIVE_TOO_LARGE`, `SESSI
 
 **Repair Request (POST `/repair`)**
 Input: `{"session_id": "uuid", "finding": {...}}`
-Returns candidate patch data (unified diff, verification status) if a repair is available for the finding.
+Returns candidate patch data (unified diff, verification status, explanation) if a repair is available for the finding.
+
+**Sandbox Run Request (POST `/sandbox/run`)**
+Input: `{"session_id": "uuid", "findings": [{...}]}`
+Streams sandbox execution steps (`fix_started`, `parse_started`, `test_completed`, `fix_passed`, `fix_failed`, etc.) using Server-Sent Events.
 
 ---
 
@@ -122,8 +133,6 @@ The following appear in planning documents but are **not yet in the code**:
 
 - GitHub URL ingestion (UI tab present, not functional)
 - Paste-code input
-- Sandbox execution and verification of auto-fixes (Phase 6/future)
-- LLM-assisted suggestions / explanations
 - Clone / duplication detection
 - Halstead metrics or Maintainability Index
 - Threshold cross-validation against non-Java corpora
@@ -184,6 +193,19 @@ python validate.py
 4. Review the dashboard: score, ISO metrics, findings
 5. Click any finding with a file path to open the code viewer at the relevant line
 
+### Dataset Generation Pipeline (Phase 10)
+Repo-Up includes an offline pipeline for generating high-quality vulnerability and repair datasets. This bypasses the UI and creates a reproducible, mathematically validated structured output (JSONL, CSV).
+To use the dataset pipeline:
+```powershell
+# From repo-up/backend/ (venv active)
+# Run the synthetic dataset generation
+python evaluation/generate_datasets.py
+
+# Run the evaluation benchmark
+python run_cross_language_benchmark.py
+```
+This generates `manifest.json`, `eval_report.json`, and `benchmark_report.md` in the `backend/evaluation/` directory.
+
 ---
 
 ## Architecture
@@ -199,7 +221,8 @@ FastAPI backend
    ├── rules/structural.py — 5 structural checks
    ├── rules/security.py   — regex secret detection
    ├── rules/ast_security.py — AST: eval/exec, missing try-catch
-   ├── repair/             — Auto-fix engine (patch_model, repair_registry)
+   ├── repair/             — Auto-fix engine (LLM suggestions, patch diffs)
+   ├── verification/       — Sandbox environments (sandbox.py, runner.py)
    ├── metrics/class_metrics.py — DIT, WMC proxy, LCOM proxy
    ├── metrics/graph_metrics.py — COF, afferent, CBO, Tarjan SCC
    └── scorer.py           — ISO 25010 weighted score

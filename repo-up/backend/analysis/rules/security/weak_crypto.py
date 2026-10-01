@@ -82,9 +82,8 @@ def analyze_python_weak_crypto(tree, rel_path: str) -> list[dict]:
             })
             continue
 
-        # hashlib.new("md5") / hashlib.new("sha1")
         if func_text in ("hashlib.new", "new"):
-            args = [c for c in find_all(node, "argument_list")]
+            args = [c for c in node.children if c.type == "argument_list"]
             if args:
                 for arg_node in args[0].children:
                     if arg_node.type == "string" and _is_weak_hash_str(node_text(arg_node)):
@@ -121,7 +120,8 @@ def analyze_java_weak_crypto(tree, rel_path: str) -> list[dict]:
             continue
 
         # Check arguments for weak algorithm name
-        for arg_list in find_all(node, "argument_list"):
+        arg_list = next((c for c in node.children if c.type == "argument_list"), None)
+        if arg_list:
             for child in arg_list.children:
                 if child.type in ("string_literal", "string"):
                     raw = node_text(child).strip("'\"")
@@ -162,7 +162,8 @@ def analyze_js_weak_crypto(tree, rel_path: str) -> list[dict]:
             continue
 
         # Check the first argument
-        for arg_list in find_all(node, "arguments"):
+        arg_list = next((c for c in node.children if c.type == "arguments"), None)
+        if arg_list:
             for child in arg_list.children:
                 if child.type == "string":
                     raw = node_text(child).strip("'\"")

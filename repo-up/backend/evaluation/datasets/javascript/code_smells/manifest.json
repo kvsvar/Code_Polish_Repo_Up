@@ -1,0 +1,13 @@
+{
+  "repository": "javascript_code_smells",
+  "language": "javascript",
+  "dataset_version": "1.0",
+  "expected_findings": [
+    {
+      "rule": "CODE-LONG-LINE",
+      "file": "main.js",
+      "line": 4,
+      "severity": "Low"
+    }
+  ]
+}

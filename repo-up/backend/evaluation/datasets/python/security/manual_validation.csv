@@ -1,0 +1,10 @@
+finding_id,rule,language,file,line,message,review_status
+FINDING-1,SEC-AST-MISSING-ERRHANDLING,Python,main.py,1,File main.py imports network or I/O libraries but does not contain any try/catch blocks.,
+FINDING-2,STRUCT-MISSING-README,Unknown,,,Project has no documentation.,
+FINDING-3,STRUCT-MISSING-SRC,Unknown,,,Source files are placed in root.,
+FINDING-4,STRUCT-MISSING-TESTS,Unknown,,,Project lacks a dedicated tests directory.,
+FINDING-5,STRUCT-MISSING-DEPS,Unknown,,,Project has neither requirements.txt nor package.json.,
+FINDING-6,STRUCT-MISSING-ENV-EXAMPLE,Unknown,,,Project lacks an example environment variables file.,
+FINDING-7,SEC-DANGEROUS-EXEC,Python,main.py,2,`subprocess.call(shell=True)` enables shell interpretation of the command. Pass a list of arguments and use shell=False to prevent injection (CWE-78).,
+FINDING-8,SEC-CWE-703,Python,main.py,2,"Call to `subprocess.call()` is not enclosed in a try/except block. If this operation fails (network error, missing file, permission denied), the exception will propagate unhandled (CWE-703). Wrap in try/except and handle or log the exception appropriately.",
+FINDING-9,CODE-UNDEFINED-NAME,Unknown,main.py,2,Reference to 'user_input' at line 2 has no visible declaration in this file's scope. May be a typo or missing import.,

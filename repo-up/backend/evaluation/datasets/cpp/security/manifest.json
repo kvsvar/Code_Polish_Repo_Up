@@ -1,0 +1,13 @@
+{
+  "repository": "cpp_security",
+  "language": "cpp",
+  "dataset_version": "1.0",
+  "expected_findings": [
+    {
+      "rule": "SEC-EVAL-EXEC",
+      "file": "main.cpp",
+      "line": 1,
+      "severity": "High"
+    }
+  ]
+}

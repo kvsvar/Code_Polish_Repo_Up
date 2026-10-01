@@ -1,0 +1,13 @@
+{
+  "repository": "typescript_security",
+  "language": "typescript",
+  "dataset_version": "1.0",
+  "expected_findings": [
+    {
+      "rule": "SEC-EVAL-EXEC",
+      "file": "main.ts",
+      "line": 1,
+      "severity": "High"
+    }
+  ]
+}

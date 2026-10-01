@@ -1,0 +1,8 @@
+finding_id,rule,language,file,line,message,review_status
+FINDING-1,STRUCT-MISSING-README,Unknown,,,Project has no documentation.,
+FINDING-2,STRUCT-MISSING-SRC,Unknown,,,Source files are placed in root.,
+FINDING-3,STRUCT-MISSING-TESTS,Unknown,,,Project lacks a dedicated tests directory.,
+FINDING-4,STRUCT-MISSING-DEPS,Unknown,,,Project has neither requirements.txt nor package.json.,
+FINDING-5,STRUCT-MISSING-ENV-EXAMPLE,Unknown,,,Project lacks an example environment variables file.,
+FINDING-6,SEC-WEAK-CRYPTO,C++,main.cpp,1,OpenSSL function `MD5()` uses the weak MD5 algorithm. Use EVP_sha256() or SHA-3 variants instead.,
+FINDING-7,CODE-LONG-LINE,Unknown,main.cpp,2,Line 2 is 123 characters (threshold: 100). Snippet: // XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX...,

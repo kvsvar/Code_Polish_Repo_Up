@@ -1,0 +1,19 @@
+{
+  "repository": "python_mixed",
+  "language": "python",
+  "dataset_version": "1.0",
+  "expected_findings": [
+    {
+      "rule": "SEC-WEAK-CRYPTO",
+      "file": "main.py",
+      "line": 2,
+      "severity": "Medium"
+    },
+    {
+      "rule": "CODE-LONG-LINE",
+      "file": "main.py",
+      "line": 3,
+      "severity": "Low"
+    }
+  ]
+}

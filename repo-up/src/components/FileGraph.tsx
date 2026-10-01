@@ -24,6 +24,9 @@ export interface FileGraphProps {
   focusPath?: string[];
   onNodeClick?: (nodeId: string) => void;
   issues?: Finding[];
+  disableZoom?: boolean;
+  activeNodeStatus?: string;
+  activeNodeLabel?: string;
 }
 
 interface ForceNode extends d3Force.SimulationNodeDatum {
@@ -52,7 +55,10 @@ export const FileGraph: React.FC<FileGraphProps> = ({
   onRevealComplete,
   focusPath = [],
   onNodeClick,
-  issues = []
+  issues = [],
+  disableZoom = false,
+  activeNodeStatus,
+  activeNodeLabel
 }) => {
   const VIEWBOX_WIDTH = 1200;
   const VIEWBOX_HEIGHT = 800;
@@ -65,6 +71,9 @@ export const FileGraph: React.FC<FileGraphProps> = ({
   const svgRef = useRef<SVGSVGElement>(null);
   const gRef = useRef<SVGGElement>(null);
   const zoomRef = useRef<d3Zoom.ZoomBehavior<SVGSVGElement, unknown> | null>(null);
+  
+  const disableZoomRef = useRef(disableZoom);
+  useEffect(() => { disableZoomRef.current = disableZoom; }, [disableZoom]);
 
   const getFolderColor = (path: string) => {
     const normalizedPath = path.replace(/\\/g, '/');
@@ -212,6 +221,10 @@ export const FileGraph: React.FC<FileGraphProps> = ({
 
     const zoom = d3Zoom.zoom<SVGSVGElement, unknown>()
       .scaleExtent([0.1, 5])
+      .filter((event) => {
+         // Default D3 zoom filter behavior + our custom disable flag
+         return !disableZoomRef.current && (!event.ctrlKey || event.type === 'wheel') && !event.button;
+      })
       .on('zoom', (event) => {
         g.attr('transform', event.transform);
         setZoomScale(event.transform.k);
@@ -234,7 +247,7 @@ export const FileGraph: React.FC<FileGraphProps> = ({
       if (targetNode.x !== undefined && targetNode.y !== undefined) {
         const svg = select(svgRef.current);
         // Desired scale
-        const scale = 1.5;
+        const scale = 2.5;
         // We calculate pan by considering SVG client dimensions but the viewport coordinate system is fixed to viewBox size
         // Since viewBox uses width/height, we map to that.
         const tx = VIEWBOX_WIDTH / 2 - targetNode.x * scale;
@@ -396,6 +409,14 @@ export const FileGraph: React.FC<FileGraphProps> = ({
                 const showLabel = nodes.length <= 20 || n.degree > 4 || isHovered || isSearched || isFocused || isNeighborToFocused || zoomScale > 1.4;
                 const isIsolated = n.degree === 0;
 
+                // Determine node color for active state
+                let focusColor = n.color;
+                if (isFocused && activeNodeStatus) {
+                  if (activeNodeStatus === 'running') focusColor = '#EAB308'; // Yellow
+                  else if (activeNodeStatus === 'passed') focusColor = '#10B981'; // Green
+                  else focusColor = '#EF4444'; // Red for queued/blocked/failed
+                }
+
                 return (
                   <motion.g 
                     key={`node-${n.id}`} 
@@ -408,7 +429,7 @@ export const FileGraph: React.FC<FileGraphProps> = ({
                     }}
                     initial={(isAnimated || isStreaming) ? { scale: 0, opacity: 0, x: n.x, y: n.y } : { scale: 1, opacity: isIsolated ? 0.4 : 1, x: n.x, y: n.y }}
                     animate={{ 
-                      scale: isFocused ? 1.5 : (isHovered || isSearched ? 1.4 : 1), 
+                      scale: isFocused ? 1.25 : (isHovered || isSearched ? 1.2 : 1), 
                       opacity: isFaded ? 0.1 : isIsolated ? 0.4 : 1,
                       x: n.x,
                       y: n.y
@@ -435,23 +456,73 @@ export const FileGraph: React.FC<FileGraphProps> = ({
                       </circle>
                     )}
 
+                    {/* Outer glow for focused node */}
+                    {isFocused && (
+                        <circle
+                            r={n.radius * 2.5}
+                            fill={focusColor}
+                            opacity="0.15"
+                            filter="url(#glow)"
+                        />
+                    )}
+
+                    {/* Base Node Styling */}
                     <circle
                       r={n.radius}
-                      fill={n.color}
-                      filter={n.degree >= 10 ? "url(#glow)" : undefined}
-                      stroke="#0B0C10"
-                      strokeWidth={isHovered || isSearched || isFocused ? 2 : 1.5}
+                      fill="#05050A"
+                      stroke={isFocused ? focusColor : n.color}
+                      strokeWidth="2"
                       className="transition-colors duration-300"
                     />
-                    <text
-                      y={n.radius + 14}
-                      textAnchor="middle"
-                      fill="#9CA3AF"
-                      fontSize={Math.max(8, 12 / zoomScale)}
-                      className={`font-mono transition-all duration-300 pointer-events-none drop-shadow-md ${showLabel ? 'opacity-100' : 'opacity-0'} ${isHovered || isSearched || isFocused ? 'fill-white font-bold z-50' : 'opacity-80'}`}
-                    >
-                      {n.label.split('/').pop()}
-                    </text>
+                    
+                    {/* Inner dash ring for focused node */}
+                    {isFocused && (
+                      <circle
+                        r={n.radius * 0.7}
+                        fill="none"
+                        stroke={focusColor}
+                        strokeWidth="1.5"
+                        strokeDasharray="2,2"
+                        className="transition-colors duration-300"
+                      />
+                    )}
+
+                    {/* Center solid core */}
+                    <circle
+                      r={n.radius * 0.4}
+                      fill={isFocused ? focusColor : n.color}
+                      opacity={isFocused ? 1 : 0.5}
+                      className="transition-colors duration-300"
+                    />
+
+                    {/* Target Label (Top) */}
+                    {isFocused && activeNodeLabel && (
+                        <foreignObject 
+                            x="-75" y={-n.radius - 30} width="150" height="24"
+                            className="overflow-visible"
+                        >
+                            <div className="flex justify-center items-center pointer-events-none w-full">
+                                <span className="px-2 py-0.5 rounded font-mono text-[9px] font-bold tracking-wider" 
+                                      style={{ backgroundColor: focusColor + '20', color: focusColor, border: `1px solid ${focusColor}40` }}>
+                                    {activeNodeLabel}
+                                </span>
+                            </div>
+                        </foreignObject>
+                    )}
+
+                    {/* Node Name Label (Bottom) */}
+                    {showLabel && (
+                        <foreignObject 
+                            x="-75" y={n.radius + 8} width="150" height="24"
+                            className="overflow-visible"
+                        >
+                            <div className="flex justify-center items-center pointer-events-none w-full">
+                                <span className={`px-2 py-0.5 rounded-md border bg-[#05050A]/80 font-mono text-[10px] whitespace-nowrap transition-all duration-300 ${isHovered || isSearched || isFocused ? 'text-gray-200 border-white/20 font-medium shadow-md' : 'text-gray-500 border-white/5'}`}>
+                                    {n.label.split('/').pop()}
+                                </span>
+                            </div>
+                        </foreignObject>
+                    )}
                   </motion.g>
                 );
               })}

@@ -24,7 +24,8 @@ MAX_UPLOAD_BYTES: int = 50 * 1024 * 1024        # 50 MB compressed
 MAX_UNCOMPRESSED_BYTES: int = 300 * 1024 * 1024  # 300 MB uncompressed total
 MAX_FILE_COUNT: int = 5_000                       # entries in archive
 
-TEMP_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "temp")
+# Place temp dir outside the backend/ directory to avoid triggering uvicorn --reload on every upload
+TEMP_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "temp")
 
 # Session store: maps session_id (str) → {"project_path": str}
 # Used by the repair endpoint to resolve a session back to its extracted directory.

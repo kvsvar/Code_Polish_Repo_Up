@@ -84,7 +84,34 @@ async def request_repair(body: RepairRequest) -> JSONResponse:
 
     try:
         from analysis.repair.repair_engine import get_candidate_patch
+        from verification.runner import verify_patch
+        from analysis.finding import Finding
+        
         response = get_candidate_patch(finding, project_root)
+        
+        # Phase 11: Optional LLM-Assisted Explanation and Patch Suggestion
+        if not response.patch:
+            from llm.llm_engine import explain_and_suggest_patch
+            llm_explanation, llm_patch = explain_and_suggest_patch(finding, project_root)
+            
+            if llm_explanation and "unavailable" not in llm_explanation:
+                response.explanation = llm_explanation
+                
+            if llm_patch:
+                response.patch = llm_patch
+                response.tier = "tier2_suggested"
+        
+        # Phase 6: Safely verify the patch
+        if response.patch:
+            f = Finding.from_dict(finding)
+            ver_result = verify_patch(project_root, response.patch, f)
+            response.patch.verification_status = ver_result.status.value
+            
+            # Serialize the response dict
+            resp_dict = response.to_dict()
+            resp_dict["patch"]["verification_details"] = ver_result.to_dict()
+            return JSONResponse(content=resp_dict)
+            
         return JSONResponse(content=response.to_dict())
     except Exception:
         log.exception("Repair engine failed for session=%s rule=%s",

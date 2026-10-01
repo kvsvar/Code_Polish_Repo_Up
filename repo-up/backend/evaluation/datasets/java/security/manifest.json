@@ -1,0 +1,13 @@
+{
+  "repository": "java_security",
+  "language": "java",
+  "dataset_version": "1.0",
+  "expected_findings": [
+    {
+      "rule": "SEC-EVAL-EXEC",
+      "file": "main.java",
+      "line": 1,
+      "severity": "High"
+    }
+  ]
+}

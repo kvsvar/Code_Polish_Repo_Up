@@ -6,10 +6,12 @@ import { DependencyGraphBackground } from './components/DependencyGraphBackgroun
 import { Code2 } from 'lucide-react';
 import { FileGraph } from './components/FileGraph';
 
+import { SandboxVerification } from './components/sandbox/SandboxVerification';
+
 /** Centralised backend URL — override via VITE_API_URL env var. */
 export const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:8000';
 
-type Screen = 'landing' | 'progress' | 'graph-reveal' | 'results';
+type Screen = 'landing' | 'progress' | 'graph-reveal' | 'results' | 'sandbox';
 
 function App() {
   const [currentScreen, setCurrentScreen] = useState<Screen>('landing');
@@ -177,6 +179,37 @@ function App() {
             onReset={() => {
               setCurrentScreen('landing');
               setAnalysisData(null);
+            }}
+            onApplyAll={() => {
+              setCurrentScreen('sandbox');
+            }}
+          />
+        )}
+
+        {currentScreen === 'sandbox' && (
+          <SandboxVerification
+            sessionId={analysisData?.session_id}
+            findings={analysisData?.issues ?? []}
+            onClose={(updatedData?: any) => {
+              if (updatedData && typeof updatedData === 'object') {
+                 setAnalysisData((prev: any) => {
+                   if (!prev) return prev;
+                   const newState = { ...prev, ...updatedData };
+                   
+                   if (updatedData.scoreBump && prev.rubric) {
+                       const bump = updatedData.scoreBump;
+                       newState.score = Math.min(100, (prev.score ?? 0) + bump.total);
+                       newState.rubric = {
+                           ...prev.rubric,
+                           final_score: Math.min(100, (prev.rubric.final_score ?? 0) + bump.total),
+                           security_score: Math.min(100, (prev.rubric.security_score ?? 0) + bump.security),
+                           structural_score: Math.min(100, (prev.rubric.structural_score ?? 0) + bump.structural)
+                       };
+                   }
+                   return newState;
+                 });
+              }
+              setCurrentScreen('results');
             }}
           />
         )}

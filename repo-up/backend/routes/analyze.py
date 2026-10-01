@@ -103,6 +103,7 @@ async def analyze_project(file: UploadFile = File(...)) -> StreamingResponse:
         from analysis.rule_registry import get as get_rule
         from analysis.rules.smells.smell_engine import run_smell_engine
         from analysis.rules.security.security_engine import run_security_engine
+        from analysis.external_adapters.codeql import run_codeql_analysis
 
         try:
             graph = nx.DiGraph()
@@ -242,6 +243,30 @@ async def analyze_project(file: UploadFile = File(...)) -> StreamingResponse:
                 security_score = max(0, security_score - sec3_penalty)
             except Exception:
                 log.exception("Stage 9 (security engine) failed -- skipping")
+
+            # ------------------------------------------------------------------
+            # Stage 10 -- CodeQL External Security Assessment
+            # ------------------------------------------------------------------
+            try:
+                # Use the primary detected language
+                main_lang = language[0] if isinstance(language, list) else language
+                if main_lang:
+                    codeql_findings = run_codeql_analysis(project_path, main_lang)
+                    
+                    # Deduplication
+                    for cf in codeql_findings:
+                        is_duplicate = False
+                        for ef in findings:
+                            if ef.get("file") == cf.file and ef.get("line") == cf.line:
+                                if ef.get("cwe") == cf.cwe or ef.get("rule_id") == cf.rule_id:
+                                    is_duplicate = True
+                                    # Merge provenance
+                                    ef["source"] = f"{ef.get('source', 'Native')} + CodeQL"
+                                    break
+                        if not is_duplicate:
+                            findings.append(cf.to_dict())
+            except Exception:
+                log.exception("Stage 10 (CodeQL) failed -- skipping")
 
             # ------------------------------------------------------------------
             # Scoring

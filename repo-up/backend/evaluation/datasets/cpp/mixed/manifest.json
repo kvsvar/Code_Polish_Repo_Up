@@ -1,0 +1,19 @@
+{
+  "repository": "cpp_mixed",
+  "language": "cpp",
+  "dataset_version": "1.0",
+  "expected_findings": [
+    {
+      "rule": "SEC-WEAK-CRYPTO",
+      "file": "main.cpp",
+      "line": 1,
+      "severity": "Medium"
+    },
+    {
+      "rule": "CODE-LONG-LINE",
+      "file": "main.cpp",
+      "line": 2,
+      "severity": "Low"
+    }
+  ]
+}

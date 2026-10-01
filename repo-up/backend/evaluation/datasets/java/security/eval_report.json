@@ -1,0 +1,111 @@
+{
+  "timestamp": "2026-09-30T15:02:55.312888",
+  "repo_up_version": "Phase 8",
+  "language": "java",
+  "dataset_version": "1.0",
+  "configuration": {
+    "line_tolerance": 3
+  },
+  "overall_metrics": {
+    "expected_findings": 1,
+    "detected_findings": 7,
+    "tp": 0,
+    "fp": 7,
+    "fn": 1,
+    "precision": 0.0,
+    "recall": 0.0,
+    "f1": 0.0
+  },
+  "category_metrics": {
+    "Security": {
+      "tp": 0,
+      "fp": 2,
+      "fn": 1,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    "Structural": {
+      "tp": 0,
+      "fp": 5,
+      "fn": 0,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    "Code Smell": {
+      "tp": 0,
+      "fp": 0,
+      "fn": 0,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    }
+  },
+  "rule_metrics": {
+    "SEC-AST-EVAL-EXEC": {
+      "tp": 0,
+      "fp": 1,
+      "fn": 0,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    "STRUCT-MISSING-README": {
+      "tp": 0,
+      "fp": 1,
+      "fn": 0,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    "STRUCT-MISSING-SRC": {
+      "tp": 0,
+      "fp": 1,
+      "fn": 0,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    "STRUCT-MISSING-TESTS": {
+      "tp": 0,
+      "fp": 1,
+      "fn": 0,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    "STRUCT-MISSING-DEPS": {
+      "tp": 0,
+      "fp": 1,
+      "fn": 0,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    "STRUCT-MISSING-ENV-EXAMPLE": {
+      "tp": 0,
+      "fp": 1,
+      "fn": 0,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    "SEC-DANGEROUS-EXEC": {
+      "tp": 0,
+      "fp": 1,
+      "fn": 0,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    },
+    "SEC-EVAL-EXEC": {
+      "tp": 0,
+      "fp": 0,
+      "fn": 1,
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0
+    }
+  }
+}

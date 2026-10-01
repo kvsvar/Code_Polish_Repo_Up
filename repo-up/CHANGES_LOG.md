@@ -1,3 +1,230 @@
+### Phase 7 Final Report (Sandbox UI/UX & Optimistic Scoring)
+
+#### 1. Sandbox Verification Dashboard
+Implemented `SandboxVerification.tsx` to handle Server-Sent Events (SSE) tracking the isolated validation of automated patches. The dashboard visualizes the 4-step pipeline (patch, parse, analysis, test) and cleanly handles success, failure, conflict, and blocked states.
+
+#### 2. D3 Graph Animation and Zoom
+Upgraded `FileGraph.tsx` to seamlessly switch from structural overview mode to isolated fix mode. Integrated dynamic `scale=2.5` D3 auto-zooming locked onto the currently active node during sandbox verification. User panning and zooming are elegantly disabled while fixes are actively applied to prevent disorienting UX.
+
+#### 3. Sci-Fi / Cyberpunk Node Aesthetics
+Rebuilt D3 SVGs to utilize complex filters, glowing borders, and `<foreignObject>` target labels mapping exactly to the requested UI mockup. Nodes dynamically change color (Red=Failed, Yellow=Running, Green=Passed) based directly on the Sandbox's live telemetry stream.
+
+#### 4. Optimistic Scoring Engine
+Modified `App.tsx` and `SandboxVerification.tsx` to intelligently recalculate findings and ISO 25010 readiness scores directly on the frontend. Utilizing strict Set matching by object reference, fixes that successfully pass validation are cleanly wiped from the findings queue, and their associated severity dynamically bumps the overall, security, and structural scores upward without requiring a full expensive repository re-analysis.
+
+---
+
+### Phase 11 Final Report (Optional LLM-Assisted Explanation and Patch Suggestion)
+
+#### 1. Provider Abstraction
+Created `backend/llm/provider.py` declaring an `LLMProvider` interface handling `generate_explanation` and `generate_patch`. It defaults to a `DummyProvider` to ensure the platform remains fully functional offline and independent of arbitrary AI vendor requirements.
+
+#### 2. Context Builder & Redaction
+Implemented `context_builder.py` prioritizing security. The context restricts sent data to the isolated finding details and a tiny source window (+/- 15 lines). Deep regular expression sweeps forcefully redact API keys, tokens, and private keys. Environment files (`.env`) and explicitly named secrets are fundamentally blocked from AI exfiltration.
+
+#### 3. LLM Engine & Phase 5 Integration
+Created `llm_engine.py` connecting the LLM output directly into the existing deterministic repair engine (`patch_model.py`). Instead of blindly trusting hallucinated code, all LLM suggestions are treated identically to human patches: they undergo strict line bounds checking, regex-escape checks, path validation, and Tree-Sitter parsing validations before even touching the verification sandbox.
+
+#### 4. Verification & Fail-Safes
+Modified `/repair` in `backend/routes/repair.py` to optionally query the LLM engine for Tier 2 and Tier 3 findings where deterministic scripts fail. All AI candidate patches are subjected to Phase 6 Sandbox Verification (`verification_details`), establishing the LLM is explicitly **not** the security authority—the static tools are. 
+
+#### 5. User Interface (UI) Updates
+Adapted `Results.tsx` to handle the `patchExplanation` state alongside candidate diffs. AI explanations are clearly marked with calm semantics: `"AI-generated suggestion — not yet verified"`. The UI neatly renders Sandbox states mapping true success bounds.
+
+#### 6. Evaluation Subsystem Tracking
+Included `evaluate_llm.py` hooking the LLM payloads into Phase 8 metrics logic, isolating the model's exact True Positive fix rate over generating k-candidates, mapping the math explicitly to `pass@k` and `secure@k`.
+
+---
+
+
+
+#### 1. Dataset Schema
+Created `backend/dataset_pipeline/schema.py` encapsulating the `DatasetRecord`. This strongly-typed Python dataclass guarantees every record ships with the mandatory topology: `repository_id`, `language`, `file`, `rule`, `cwe`, `original_code_hash`, `original_finding`, `candidate_patch`, `patched_code_hash`, `verification_results`, and `final_status`. 
+
+#### 2. Provenance Tracking Without Secret Exfiltration
+To ensure zero sensitive secrets bleed into the exported repositories, the pipeline stores exact structural state tracking using SHA-256 hashes (`original_code_hash` and `patched_code_hash`) mapped to `DatasetRecord.hash_content()`. 
+
+#### 3. Execution Pipeline & States
+Created `pipeline.py` which ingests standard Repo-Up findings and categorizes them automatically.
+Records inherit a strictly bounded `final_status`:
+- `VULNERABLE`: Detected by parser/rules but no patch attempted/generated.
+- `REPAIRED_UNVERIFIED`: Patch generated but skipped/lacked verification hooks.
+- `FAILED_VERIFICATION`: Patch generated, Sandbox caught a compilation/security error, reverted.
+- `STATIC_VERIFIED`: Patch passed tree-sitter/syntax/static safety in the sandbox.
+- `FULLY_VERIFIED`: Patch passed isolated dynamic unit testing (future-proofed property).
+
+#### 4. Export Mechanisms
+Developed `exporter.py` with multi-format generation:
+- **JSONL**: Machine-readable full payloads for deep research ingestion.
+- **CSV Summary**: Light metadata tabular views isolating paths, rules, and verification transitions (excluding raw AST strings).
+- **Markdown Statistics**: Quick aggregation by language, final status, rules, and CWE.
+
+#### 5. Quality Enforcement
+Established `quality_checks.py`. Before anything hits disk, the pipeline runs safety audits confirming:
+- No duplicate records (combining repo, file, rule, and codebase hash bounds).
+- Zero missing provenances or absent validation states.
+- Exact constraint compliance (e.g., throwing alerts if a record claims `FULLY_VERIFIED` but `test_verification` was false).
+
+#### 6. Verification and Usage
+Validated the core lifecycle end-to-end completely offline via `test_dataset_pipeline.py`. No LLMs were trained, and no arbitrary code uploaded. The instructions for invoking the generation pipeline via Python scripts have been seamlessly integrated into `README.md`.
+
+---
+
+
+
+#### 1. Dataset Structure
+Created `evaluation/datasets/` encompassing 25 fully distinct synthetic repositories. Each of the 5 targeted languages (Python, JavaScript, TypeScript, Java, C++) contains 5 categorised workspaces (`clean`, `code_smells`, `security`, `structural`, `mixed`), generated securely via `generate_datasets.py`. 
+
+#### 2. Minimum Cases & Rules Tested
+Each language contains ground-truth implementations for:
+- `CODE-LONG-LINE` (120+ characters)
+- `SEC-EVAL-EXEC` / `SEC-DANGEROUS-EXEC`
+- `SEC-WEAK-CRYPTO` (e.g. MD5 implementation)
+- Pure cleanly parsed structures with 0 expected findings.
+
+#### 3. Ground Truth & Parser Success
+Every single case includes a strict `manifest.json` outlining the expected Rule, File, Line, and Severity. Across the test suite, 25 files were discovered and precisely 25 files were successfully parsed with **0 parse failures**.
+
+#### 4. Execution Runner
+Created `run_cross_language_benchmark.py` which recursively loops through the datasets, invokes the unified Phase 1 Repo-Up Analysis engines, and computes TP, FP, FN metrics across the board using Phase 8's evaluation harness. 
+
+#### 5. Generated Benchmark Report
+The runner yields `benchmark_report.md` separating measurements into:
+- **Language Comparison**: Tables of expected vs detected TP/FP/FN/Precision/Recall across languages.
+- **Parser Reliability**: Concrete diagnostics on parsing drops.
+- **Security Subset**: Isolated tracking mapping exact CWE/Rules grouped per language.
+- **Repair Subset**: Added fields denoting patch verifications (Note: Currently logged as 0s since candidate patch generation acts on-demand in `/repair` and isn't bulk-generated in detection cycles).
+
+#### 6. Limitations & Reproducibility
+The synthetic benchmarks demonstrate 100% parser resilience and successful cross-language integration, but we do not claim real-world generalization purely from these trivial fixtures. 
+The entire benchmark suite can be re-run and verified completely offline using: `python backend/run_cross_language_benchmark.py`.
+
+---
+
+
+
+#### 1. Evaluation Architecture
+Created an isolated `backend/evaluation/` directory housing the research harness:
+- `dataset_loader.py` for reading benchmark manifests.
+- `ground_truth.py` for the schema of `BenchmarkManifest` and `ExpectedFinding`.
+- `matching.py` for tolerant alignment between expected and actual findings.
+- `metrics.py` for mathematical calculation of precision, recall, F1, and paper-inspired metrics (pass@k, secure@k, vulnerable@k).
+- `report.py` for assembling the comprehensive JSON output and validation CSVs.
+- `benchmark_runner.py` for orchestrating the Repo-Up analysis engines (ast, structural, security, smells) seamlessly outside of the normal `analyze.py` HTTP route.
+
+#### 2. Metrics & Paper Alignment
+Implemented strict calculation formulas ensuring metrics are not rounded internally. The module supports:
+- Base statistical measures (TP, FP, FN, Precision, Recall, F1).
+- `pass@k`: probability that at least one of the top `k` candidates passes structural tests.
+- `secure@k` and `vulnerable@k`: mirroring the security-focused metrics outlined in LLM code-repair studies.
+
+#### 3. Matching Policy
+Established a line-tolerant matching algorithm. An actual finding aligns with a ground-truth expectation if:
+- Rule ID or CWE are equivalent.
+- The underlying file path correctly suffixes the expected path.
+- The reported line number is within `line_tolerance` (default 3 lines) to account for natural structural shifts (imports, whitespace, formatting) across parsers.
+
+#### 4. Reproducibility
+The `generate_evaluation_report` embeds execution metadata such as `timestamp`, `repo_up_version`, `dataset_version`, and arbitrary `config` maps to ensure researchers can consistently map reports to specific analysis snapshots.
+
+#### 5. Sample Benchmark Results & Validation
+Introduced `export_manual_validation_csv()` to enable human researchers to manually verify the True Positive / False Positive spread by stamping `correct | incorrect | uncertain`. 
+
+#### 6. Tests & Limitations
+Wrote `test_evaluation.py` establishing 100% correctness on the matching logic tolerance offsets, metric calculations, and basic pass@k probability math bounds. Note that while this calculates metrics correctly, True Negatives (TN) are explicitly unrecorded because of the open-world assumption of open-ended code analysis.
+
+This sub-system operates purely offline/via CLI and does not modify the production Dashboard behavior.
+
+---
+
+
+
+#### 1. CodeQL Detection & Execution
+Created `backend/analysis/external_adapters/codeql.py`. Detects whether CodeQL CLI is locally available and parses its version and supported languages using standard `codeql` cli commands. Gracefully ignores analysis if unavailable.
+
+#### 2. Verification Workspaces
+Automatically provisions an isolated temporary DB namespace to prevent conflicts with the user's workspace using Python's `tempfile.mkdtemp`. 
+
+#### 3. Execution & Queries
+Filters target queries strictly to `{language}-security-extended.qls` avoiding a sprawling multi-hour run. Results are exported to SARIF.
+
+#### 4. SARIF Normalisation
+The adapter unpacks CodeQL SARIF outputs strictly mapping them into Repo-Up `Finding` objects matching our schema exactly. It explicitly assigns `source="CodeQL"`.
+
+#### 5. Pipeline Deduplication
+Integrated into `analyze.py` (Stage 10). If the same file and same line yield a CodeQL issue that hits the identical CWE/Rule ID as a native Tree-sitter check, the findings are deduplicated. The `source` property is merged to read `"Native + CodeQL"` representing corroborated provenance.
+
+#### 6. UI Representation
+Extended the `Results.tsx` UI to expose `issue.source`. When a finding originates from CodeQL (or native + CodeQL), a purple badge with a Database icon explicitly surfaces the provenance. Added "External Security Assessment" to the Analysis Pipeline graphic.
+
+#### 7. Safety & Testing
+Wrote `test_codeql.py` simulating 4 exact scenarios:
+- CodeQL absent (verifies seamless failover & zero findings).
+- CodeQL clean (verifies proper SARIF parsing).
+- CodeQL vulnerable fixture (asserts accurate mapping).
+- CodeQL malformed repo (database creation fails safely).
+
+All CodeQL capabilities operate orthogonally; the app remains fully functional natively without it.
+
+---
+
+
+
+#### 1. Isolation Approach
+Created `VerificationSandbox` using Python's `tempfile.mkdtemp` and `shutil.copytree` to isolate candidates. This copies the entire original workspace (excluding massive virtual environments/modules) to a temporary root. The patch is then validated with `validate_patch` (path bounds, escape prevention, matching check) and applied *only* to the sandboxed file.
+
+#### 2. Verification Stages
+The verification pipeline orchestrated by `runner.py` runs:
+- **Parse**: Confirms tree-sitter can still parse the file after patch.
+- **Static Analysis**: Re-runs the Smell engine to verify the smell finding is gone.
+- **Security Analysis**: Re-runs the Security engine to verify the security finding is gone, and no new regressions were introduced.
+- **Tests**: Re-runs repository tests (currently set to `NOT_AVAILABLE` natively on Windows).
+
+#### 3. Resource Limits
+Enforced maximum workspace size (100MB), max file size (10MB), and bounded the runtime limit config.
+
+#### 4. Tests
+Included `test_verification.py` spanning malicious path-traversal attempts, malformed lines, and AST-breaking syntax patches. Tests assert the sandbox catches these with a `FAIL_PARSE` safety net.
+
+#### 5. Known Platform Limitations
+True OS-level namespace/cgroup isolation for arbitrary execution is not easily accessible via Python alone on Windows without Docker or Hyper-V APIs. As directed, the test runner explicitly disables running `pytest`, `npm test`, or `mvn` and correctly defaults to `NOT_AVAILABLE` instead of attempting unsafe execution.
+
+#### 6. Frontend
+Augmented the candidate patch UI in `Results.tsx` to surface the Sandbox Telemetry, clearly marking test execution as `Not available` in environments lacking true sandboxing, but fully presenting Parse, Static, and Security results.
+
+---
+
+
+
+#### 1. Files Changed
+- `backend/analysis/finding.py` (Created)
+- `backend/analysis/rule_registry.py` (Created)
+- `backend/routes/analyze.py` (Updated to use Unified Finding model)
+- Various `backend/analysis/rules/*.py` (Migrated to output `Finding` objects)
+
+#### 2. New Finding Model
+Created `Finding` dataclass containing `rule_id`, `category`, `title`, `description`, `severity`, `file`, `line`, `cwe`, `resolution`, `autofix_available`. Added `to_dict()` for strict backward compatibility with existing frontend UI contracts.
+
+#### 3. Rule IDs Introduced
+Defined a strict naming schema: `STRUCT-*`, `SEC-*`, `METRIC-*`. See `rule_registry.py` for exact mappings (e.g. `SEC-HARDCODED-SECRET`).
+
+#### 4. Existing Rules Migrated
+All structural, security, and metric tests were migrated to the unified model.
+
+#### 5. Tests Run
+Run `validate.py`, `validate_parity.py`, `validate_repair.py`, `validate_security.py`, `validate_smells.py` on fixtures (`fixture_python_ts`, `fixture_java`, `fixture_cpp`, `demo_taskflow`).
+
+#### 6. Results
+All checks pass. The new architecture successfully normalizes findings across Python, TS/JS, Java, and C++.
+
+#### 7. Compatibility Issues
+None. The frontend (`Results.tsx`, `CodeViewer.tsx`) still consumes the `issues` list successfully because `Finding.to_dict()` matches the old shape perfectly.
+
+#### 8. Intentionally Not Changed
+Repair, sandboxing, and LLM implementations were deferred (to later phases). Existing parser and visual design were untouched.
+
+---
+
 ## Phase 3: Security Smell and CWE Identification Engine
 - Restructured `backend/analysis/rules/security/` into a Python package containing 5 new structured security rules.
 - **SEC-CWE-502**: Implemented unsafe deserialization detection covering `pickle`, `marshal`, `shelve`, unsafe `yaml.load` (Python), `node-serialize` (JS/TS), and `ObjectInputStream.readObject` (Java).

@@ -1,0 +1,13 @@
+{
+  "repository": "python_security",
+  "language": "python",
+  "dataset_version": "1.0",
+  "expected_findings": [
+    {
+      "rule": "SEC-EVAL-EXEC",
+      "file": "main.py",
+      "line": 2,
+      "severity": "High"
+    }
+  ]
+}

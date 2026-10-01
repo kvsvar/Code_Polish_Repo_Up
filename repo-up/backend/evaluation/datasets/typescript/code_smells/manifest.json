@@ -1,0 +1,13 @@
+{
+  "repository": "typescript_code_smells",
+  "language": "typescript",
+  "dataset_version": "1.0",
+  "expected_findings": [
+    {
+      "rule": "CODE-LONG-LINE",
+      "file": "main.ts",
+      "line": 4,
+      "severity": "Low"
+    }
+  ]
+}

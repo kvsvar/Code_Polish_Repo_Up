@@ -1,0 +1,13 @@
+{
+  "repository": "java_code_smells",
+  "language": "java",
+  "dataset_version": "1.0",
+  "expected_findings": [
+    {
+      "rule": "CODE-LONG-LINE",
+      "file": "main.java",
+      "line": 2,
+      "severity": "Low"
+    }
+  ]
+}

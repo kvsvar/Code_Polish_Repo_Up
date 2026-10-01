@@ -1,0 +1,8 @@
+finding_id,rule,language,file,line,message,review_status
+FINDING-1,STRUCT-MISSING-README,Unknown,,,Project has no documentation.,
+FINDING-2,STRUCT-MISSING-SRC,Unknown,,,Source files are placed in root.,
+FINDING-3,STRUCT-MISSING-TESTS,Unknown,,,Project lacks a dedicated tests directory.,
+FINDING-4,STRUCT-MISSING-DEPS,Unknown,,,Project has neither requirements.txt nor package.json.,
+FINDING-5,STRUCT-MISSING-ENV-EXAMPLE,Unknown,,,Project lacks an example environment variables file.,
+FINDING-6,CODE-LONG-LINE,Unknown,main.java,2,Line 2 is 123 characters (threshold: 100). Snippet: // AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA...,
+FINDING-7,CODE-TOO-FEW-PUBLIC-METHODS,Unknown,main.java,1,Class 'A' has 0 public method(s); the configured minimum is 2. Consider promoting this to a function or adding a second method.,
